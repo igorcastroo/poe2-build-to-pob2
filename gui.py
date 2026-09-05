@@ -10,7 +10,7 @@ TEXT = {
         'title': 'Build → PoB2 | Conversor de estágios', 'headline': 'Vários estágios. Um único PoB2.',
         'subtitle': 'Adicione os .build, confira a ordem e gere XML + código de importação.',
         'add': 'Adicionar arquivos', 'remove': 'Remover', 'up': '↑ Subir', 'down': '↓ Descer', 'sort': 'Ordenar estágios',
-        'catalog': 'Catálogo PoB2', 'mapping': 'Mapa alternativo (opcional)', 'class': 'Classe (se não identificada)', 'choose': 'Selecionar',
+        'mapping': 'Mapa alternativo (opcional)', 'class': 'Classe (se não identificada)', 'choose': 'Selecionar',
         'partial': 'Permitir conversão parcial: omitir IDs desconhecidos e registrar no relatório', 'generate': 'Gerar PoB2…', 'copy': 'Copiar código',
         'welcome': 'Tudo funciona localmente. Equipamentos descritos apenas como sugestões ficam nas notas.\nO catálogo incluído corresponde à árvore 0_5.',
         'files_title': 'Selecionar arquivos', 'files_needed': 'Adicione pelo menos um arquivo .build.', 'save_title': 'Salvar PoB2', 'save_name': 'merged.xml',
@@ -22,7 +22,7 @@ TEXT = {
         'title': 'Build → PoB2 | Stage Converter', 'headline': 'Many stages. One PoB2.',
         'subtitle': 'Add .build files, review their order, then create XML and an import code.',
         'add': 'Add files', 'remove': 'Remove', 'up': '↑ Move up', 'down': '↓ Move down', 'sort': 'Sort stages',
-        'catalog': 'PoB2 catalog', 'mapping': 'Alternate map (optional)', 'class': 'Class (when not detected)', 'choose': 'Browse',
+        'mapping': 'Alternate map (optional)', 'class': 'Class (when not detected)', 'choose': 'Browse',
         'partial': 'Allow partial conversion: omit unknown IDs and record them in the report', 'generate': 'Create PoB2…', 'copy': 'Copy code',
         'welcome': 'Everything runs locally. Equipment described only as guidance remains in notes.\nThe bundled catalog matches tree 0_5.',
         'files_title': 'Select files', 'files_needed': 'Add at least one .build file.', 'save_title': 'Save PoB2', 'save_name': 'merged.xml',
@@ -64,12 +64,12 @@ class App:
             ttk.Button(buttons, text=label, command=callback).pack(side='left', padx=(0, 6))
         self.listbox = tk.Listbox(frame, height=10, exportselection=False); self.listbox.pack(fill='both', expand=True, pady=10)
         options = ttk.Frame(frame); options.pack(fill='x'); options.columnconfigure(1, weight=1)
-        for row, label, variable in [(0, self.t['catalog'], self.catalog), (1, self.t['mapping'], self.mapping)]:
+        for row, label, variable in [(0, self.t['mapping'], self.mapping)]:
             ttk.Label(options, text=label).grid(row=row, column=0, sticky='w', padx=(0, 12), pady=4)
             ttk.Entry(options, textvariable=variable).grid(row=row, column=1, sticky='ew')
             ttk.Button(options, text=self.t['choose'], command=lambda v=variable: self.select_json(v)).grid(row=row, column=2, padx=(8, 0))
-        ttk.Label(options, text=self.t['class']).grid(row=2, column=0, sticky='w', pady=4)
-        ttk.Combobox(options, textvariable=self.cls, values=[''] + self.classes).grid(row=2, column=1, sticky='ew')
+        ttk.Label(options, text=self.t['class']).grid(row=1, column=0, sticky='w', pady=4)
+        ttk.Combobox(options, textvariable=self.cls, values=[''] + self.classes).grid(row=1, column=1, sticky='ew')
         ttk.Checkbutton(frame, text=self.t['partial'], variable=self.partial).pack(anchor='w', pady=8)
         bar = ttk.Frame(frame); bar.pack(fill='x')
         ttk.Button(bar, text=self.t['generate'], command=self.generate).pack(side='left')
