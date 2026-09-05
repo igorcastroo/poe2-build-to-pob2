@@ -1,4 +1,6 @@
-# PoB2 Stage Merger
+# PoE2 Build to PoB2
+
+Repository name: `poe2-build-to-pob2`
 
 **Build → PoB2** merges multiple Mobalytics / PoE2 `.build` stages into one Path of Building 2 build.
 
