@@ -33,6 +33,12 @@ def extract(source, version):
     lua = (source / 'Data/InventorySlots.lua').read_text(encoding='utf-8')
     for name, game_id, x in re.findall(r'\["([^"]+)"\] = \{ id = "([^"]+)", slot_x = (\d+)', lua):
         slots[f'{game_id}:{x}'] = name
+    # Official Build Planner exports use Charm1:0..2, while some PoB2 data
+    # snapshots expose those same slots as Flask1:2..4.
+    for index in range(3):
+        flask_slot = slots.get(f'Flask1:{index + 2}')
+        if flask_slot:
+            slots.setdefault(f'Charm1:{index}', flask_slot)
     classes = [{ 'name': c['name'], 'integerId': c['integerId'],
                  'ascendancies': [{ 'name': a['name'], 'internalId': a['internalId']} for a in c['ascendancies']]}
                for c in tree['classes']]

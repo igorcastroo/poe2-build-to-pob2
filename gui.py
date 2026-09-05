@@ -1,15 +1,25 @@
 """Small native Tk interface; all conversion runs locally."""
 from pathlib import Path
 import json
+import tempfile
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from converter import DEFAULT_CATALOG, ConversionError, convert, write_outputs, stage_key
+from mobalytics import MobalyticsImportError, import_guide
 
 TEXT = {
     'pt-BR': {
         'title': 'Build → PoB2 | Conversor de estágios', 'headline': 'Vários estágios. Um único PoB2.',
         'subtitle': 'Adicione os .build, confira a ordem e gere XML + código de importação.',
         'add': 'Adicionar arquivos', 'remove': 'Remover', 'up': '↑ Subir', 'down': '↓ Descer', 'sort': 'Ordenar estágios',
+        'url': 'Link do guia Mobalytics', 'import_url': 'Importar guia',
+        'url_needed': 'Cole um link p?blico do guia Mobalytics.', 'import_error': 'N?o foi poss?vel importar o guia',
+        'imported': '{stages} est?gios importados de:\n{guide}\nArquivos tempor?rios v?lidos foram adicionados ? lista.',
+        'import_rejected': '\n\n{count} variante(s) rejeitada(s):\n{details}',
+        'url': 'Mobalytics guide URL', 'import_url': 'Import guide',
+        'url_needed': 'Paste a public Mobalytics guide URL.', 'import_error': 'Could not import guide',
+        'imported': '{stages} stages imported from:\n{guide}\nValidated temporary files were added to the list.',
+        'import_rejected': '\n\n{count} rejected variant(s):\n{details}',
         'mapping': 'Mapa alternativo (opcional)', 'class': 'Classe (se não identificada)', 'choose': 'Selecionar',
         'partial': 'Permitir conversão parcial: omitir IDs desconhecidos e registrar no relatório', 'generate': 'Gerar PoB2…', 'copy': 'Copiar código',
         'welcome': 'Tudo funciona localmente. Equipamentos descritos apenas como sugestões ficam nas notas.\nO catálogo incluído corresponde à árvore 0_5.',
@@ -38,9 +48,11 @@ class App:
         self.root = root
         root.geometry('850x670'); root.minsize(700, 560)
         self.files, self.code = [], None
+        self.import_temp = tempfile.TemporaryDirectory(prefix='poe2-build-to-pob2-')
         self.locale = tk.StringVar(value='pt-BR')
         self.catalog = tk.StringVar(value=str(DEFAULT_CATALOG))
         self.mapping, self.cls, self.partial = tk.StringVar(), tk.StringVar(), tk.BooleanVar()
+        self.guide_url = tk.StringVar()
         self.classes = [c['name'] for c in json.loads(DEFAULT_CATALOG.read_text(encoding='utf-8'))['classes']]
         self.build()
 
@@ -62,6 +74,10 @@ class App:
         buttons = ttk.Frame(frame); buttons.pack(fill='x')
         for label, callback in [(self.t['add'], self.add), (self.t['remove'], self.remove), (self.t['up'], lambda: self.move(-1)), (self.t['down'], lambda: self.move(1)), (self.t['sort'], self.sort)]:
             ttk.Button(buttons, text=label, command=callback).pack(side='left', padx=(0, 6))
+        guide = ttk.Frame(frame); guide.pack(fill='x', pady=(10, 0)); guide.columnconfigure(1, weight=1)
+        ttk.Label(guide, text=self.t['url']).grid(row=0, column=0, sticky='w', padx=(0, 12))
+        ttk.Entry(guide, textvariable=self.guide_url).grid(row=0, column=1, sticky='ew')
+        ttk.Button(guide, text=self.t['import_url'], command=self.import_url).grid(row=0, column=2, padx=(8, 0))
         self.listbox = tk.Listbox(frame, height=10, exportselection=False); self.listbox.pack(fill='both', expand=True, pady=10)
         options = ttk.Frame(frame); options.pack(fill='x'); options.columnconfigure(1, weight=1)
         for row, label, variable in [(0, self.t['mapping'], self.mapping)]:
@@ -91,6 +107,24 @@ class App:
     def add(self):
         paths = filedialog.askopenfilenames(filetypes=[(self.t['build_files'], '*.build'), (self.t['all_files'], '*.*')])
         self.files.extend(path for path in paths if path not in self.files); self.sort()
+
+    def import_url(self):
+        url = self.guide_url.get().strip()
+        if not url:
+            messagebox.showinfo(self.t['import_error'], self.t['url_needed']); return
+        self.root.configure(cursor='watch'); self.root.update_idletasks()
+        try:
+            result = import_guide(url, self.import_temp.name)
+            self.files.extend(str(path) for path in result.files if str(path) not in self.files)
+            self.sort()
+            message = self.t['imported'].format(stages=len(result.files), guide=result.guide_name)
+            if result.rejected:
+                message += self.t['import_rejected'].format(count=len(result.rejected), details='\n'.join(result.rejected))
+            self.log(message)
+        except (MobalyticsImportError, OSError, ValueError) as e:
+            self.log(str(e)); messagebox.showerror(self.t['import_error'], str(e))
+        finally:
+            self.root.configure(cursor='')
 
     def remove(self):
         for i in reversed(self.listbox.curselection()): self.files.pop(i)
