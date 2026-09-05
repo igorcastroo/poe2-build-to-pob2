@@ -12,10 +12,10 @@ Open `Build2PoB2.exe`. It is the ready-to-run Windows version and includes Pytho
 
 Download the executable and ZIP package from the [latest release](https://github.com/igorcastroo/poe2-build-to-pob2/releases/latest).
 
-## Running the source version
+## For developers: running the source version
 
 1. Extract the ZIP to a folder.
-2. Open **Abrir Conversor.bat**.
+2. Open **Abrir Conversor.bat**, or run `py converter.py --gui` from a terminal in that folder.
 3. Add the `.build` files. The list is sorted automatically; use Move Up / Move Down to adjust it.
 4. Choose a class only if the files' ascendancy does not identify it.
 5. Select **Create PoB2**, choose a new output name, then select **Copy code**.
@@ -23,7 +23,7 @@ Download the executable and ZIP package from the [latest release](https://github
 
 The tool creates `name.xml`, `name.txt`, and `name.report.json`. It never overwrites an existing output. The XML can also be placed in the PoB2 builds folder.
 
-If Windows does not recognize `python`, install Python with Tkinter and enable the option to add it to PATH. Alternatively, open a terminal in this folder and run `py converter.py --gui`.
+This development path requires Python with Tkinter. If Windows does not recognize `py` or `python`, install Python and enable the option to add it to PATH. End users should download `Build2PoB2.exe` from the latest release instead.
 
 ## CLI
 
