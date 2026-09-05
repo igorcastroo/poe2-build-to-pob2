@@ -4,107 +4,113 @@ Repository name: `poe2-build-to-pob2`
 
 **Build → PoB2** merges multiple Mobalytics / PoE2 `.build` stages into one Path of Building 2 build.
 
-Converte vários arquivos `.build` JSON do Mobalytics / planejador do PoE2 em **um XML do PoB2**, um **código de importação** e um **relatório JSON**. Python 3.10 ou mais recente, sem pacotes externos. A interface usa Tkinter, incluído na instalação padrão do Python para Windows.
+It converts Mobalytics / PoE2 JSON `.build` files into **one PoB2 XML file**, an **import code**, and a **JSON report**. It requires Python 3.10 or newer and has no external Python dependencies. The source interface uses Tkinter, included with the standard Windows Python installation.
 
-## Executável Windows
+## Windows executable
 
-Abra `Build2PoB2.exe`. Ele é a versão pronta para Windows, inclui Python, Tkinter e o catálogo da árvore 0_5; não requer instalação de Python nem conexão com a internet. A tela abre em Português (Brasil). Use as bandeiras no topo para alternar, a qualquer momento, entre **🇧🇷 Português (Brasil)** e **🇺🇸 English (US)**.
+Open `Build2PoB2.exe`. It is the ready-to-run Windows version and includes Python, Tkinter, and the 0_5 tree catalog. It does not require Python or an internet connection. The application opens in Portuguese (Brazil); use the flags at the top to switch at any time between **Portuguese (Brazil)** and **English (US)**.
 
-## Abrir a interface pelo código-fonte
+Download the executable and ZIP package from the [latest release](https://github.com/igorcastroo/poe2-build-to-pob2/releases/latest).
 
-1. Extraia o ZIP inteiro para uma pasta.
-2. Abra **Abrir Conversor.bat**.
-3. Adicione os arquivos `.build`. A lista é ordenada automaticamente; use Subir/Descer para ajustar.
-4. Informe a classe apenas quando ela não puder ser identificada pela ascendência dos arquivos.
-5. Clique em **Gerar PoB2**, escolha um nome novo e depois em **Copiar código**.
-6. No PoB2: **Import/Export Build → Import from Code**.
+## Running the source version
 
-São gerados `nome.xml`, `nome.txt` e `nome.report.json`. O programa não substitui saídas existentes. O XML também pode ser colocado na pasta de builds do PoB2.
+1. Extract the ZIP to a folder.
+2. Open **Abrir Conversor.bat**.
+3. Add the `.build` files. The list is sorted automatically; use Move Up / Move Down to adjust it.
+4. Choose a class only if the files' ascendancy does not identify it.
+5. Select **Create PoB2**, choose a new output name, then select **Copy code**.
+6. In PoB2, use **Import/Export Build → Import from Code**.
 
-Se o Windows não reconhecer `python`, instale Python com Tkinter e a opção de adicionar ao PATH, ou execute `py converter.py --gui` no terminal aberto nesta pasta.
+The tool creates `name.xml`, `name.txt`, and `name.report.json`. It never overwrites an existing output. The XML can also be placed in the PoB2 builds folder.
+
+If Windows does not recognize `python`, install Python with Tkinter and enable the option to add it to PATH. Alternatively, open a terminal in this folder and run `py converter.py --gui`.
 
 ## CLI
 
-Execute estes comandos dentro da pasta extraída:
+Run the following commands from the extracted folder:
 
 ```powershell
-python converter.py "C:\MeusGuias\*.build" --class Monk -o "C:\MeusGuias\GigaBonk"
-python converter.py "Act 1.build" "Act 2.build" "Mirror Tier.build" --keep-order --class Monk -o resultado
-python converter.py "C:\MeusGuias" --map passives.json --class Monk -o resultado
-python converter.py --validate resultado.txt
+python converter.py "C:\MyGuides\*.build" --class Monk -o "C:\MyGuides\GigaBonk"
+python converter.py "Act 1.build" "Act 2.build" "Mirror Tier.build" --keep-order --class Monk -o result
+python converter.py "C:\MyGuides" --map passives.json --class Monk -o result
+python converter.py --validate result.txt
 python converter.py --gui
 ```
 
-Sem `--keep-order`, a ordenação usa o **nome do arquivo**: Act/Ato 1… → Interludes → Early → Mid → Late → High → Mirror. Nomes não reconhecidos vêm depois, em ordem natural. Variantes dentro de uma mesma fase são ordenadas pelo nome. Na GUI a ordem final da lista sempre prevalece.
+Without `--keep-order`, ordering uses the **file name**: Act 1… → Interludes → Early → Mid → Late → High → Mirror. Unrecognized names appear afterward in natural order. Variants within the same phase are ordered by name. In the GUI, the final order shown in the list always wins.
 
-Código de saída: `0` em caso de sucesso, `2` em caso de erro. Arquivos corrompidos, vazios, de versão diferente ou com estrutura inválida são ignorados e identificados no relatório. Se nenhum arquivo válido restar, nenhum PoB é produzido. Erros impeditivos mostram o diagnóstico no terminal; a API Python também disponibiliza `ConversionError.report`.
+Exit code `0` means success and `2` means failure. Corrupt, empty, wrong-version, or malformed files are skipped and listed in the report. If no valid build remains, no PoB is created. Blocking errors show diagnostics in the terminal; the Python API also exposes `ConversionError.report`.
 
-## Mapa de passivas e versões
+## Passive map and versions
 
-O catálogo incluído contém **4.914 IDs de passivas**, **967 gems**, classes/ascendências e slots extraídos do repositório público do PoB2, árvore **0_5**. A versão de jogo **0.5.5** usa esse identificador de árvore, mas a existência de um ID no mapa não prova que os balanceamentos sejam idênticos entre patches.
+The bundled catalog contains **4,914 passive IDs**, **967 gems**, classes, ascendancies, and inventory slots extracted from the public PoB2 repository for tree **0_5**. Game version **0.5.5** uses this tree identifier, but the presence of an ID in the map does not prove that balance values are identical across patches.
 
-O mapa segue a associação presente no PoB2: `stringId` interno da GGG → `skill` numérico, equivalente ao hash da passiva usado pelo PoB. IDs desconhecidos **não são convertidos por semelhança de nome**. Por padrão interrompem a conversão; `--allow-partial` permite omiti-los dos conjuntos ativos e mantê-los nas notas e no relatório. A interface oferece a mesma opção, desmarcada inicialmente.
+The map follows the PoB2 association: GGG internal `stringId` → numeric `skill`, equivalent to the passive hash used by PoB. Unknown IDs are **not matched by similar names**. By default, they stop the conversion; `--allow-partial` omits them from active sets while retaining them in the notes and report. The GUI provides the same option and leaves it unchecked initially.
 
-`--map` aceita os formatos abaixo. O mapa substitui completamente a seção de passivas; não há complementação silenciosa pelo catálogo padrão.
+`--map` accepts the formats below. The supplied map replaces the passive section entirely; there is no silent fallback to the bundled catalog.
 
 ```json
-{"id_interno": 12345}
+{"internal_id": 12345}
 ```
 
 ```json
-[{"Id": "id_interno", "PassiveSkillsHash": 12345}]
+[{"Id": "internal_id", "PassiveSkillsHash": 12345}]
 ```
 
 ```json
-{"id_interno": {"PassiveSkillsHash": 12345}}
+{"internal_id": {"PassiveSkillsHash": 12345}}
 ```
 
 ```json
-{"tree_version": "0_5", "passives": {"id_interno": 12345}}
+{"tree_version": "0_5", "passives": {"internal_id": 12345}}
 ```
 
-Os IDs acima ilustram a estrutura; **não são um mapa para jogar**. Use os IDs reais do catálogo ou do seu `passives.json`. Hashes negativos, fora de 16 bits, fracionários, booleanos e IDs com associações conflitantes são rejeitados. Mapas sem versão são interpretados como pertencentes à versão do catálogo selecionado, sob responsabilidade de quem forneceu o mapa.
+The IDs above only illustrate the structure; **they are not a usable game map**. Use actual IDs from the catalog or your `passives.json`. Negative, non-16-bit, fractional, Boolean, and conflicting mappings are rejected. Versionless maps are treated as belonging to the selected catalog version, which is the responsibility of the map provider.
 
-Para atualizar todos os dados a partir de uma pasta do PoB2 que contenha `TreeData/<versão>/tree.json`, `Data/Gems.lua` e `Data/InventorySlots.lua`:
+To refresh all data from a PoB2 folder containing `TreeData/<version>/tree.json`, `Data/Gems.lua`, and `Data/InventorySlots.lua`:
 
 ```powershell
-python catalog_tools.py "C:\PoB2" --tree-version 0_5 -o catalog-atual.json
-python converter.py "C:\MeusGuias\*.build" --catalog catalog-atual.json --class Monk -o resultado
+python catalog_tools.py "C:\PoB2" --tree-version 0_5 -o current-catalog.json
+python converter.py "C:\MyGuides\*.build" --catalog current-catalog.json --class Monk -o result
 ```
 
-Uma cópia do repositório oficial também serve como origem. O extrator **lê os dados sem executar Lua**. Se o formato upstream mudar ou houver ambiguidades, ele interrompe. Um catálogo para outra versão deve substituir o catálogo inteiro, não apenas mudar o número em `--tree-version`.
+A clone of the official repository can be used as the source. The extractor **reads data without executing Lua**. If the upstream format changes or ambiguities exist, it stops. A catalog for another version must replace the entire catalog; changing only the `--tree-version` number is not sufficient.
 
-## O que é preservado
+## Preserved data
 
-- Um Tree Spec, Skill Set e Item Set com o mesmo título para cada estágio válido.
-- Passivas mapeadas, conjuntos de armas 1/2 e notas por nó.
-- Gems e suportes vinculados por IDs exatos do catálogo; notas nas gems.
-- Descrição, autor, link, notas, intervalos e campos adicionais no JSON original incorporado às Notes e ao relatório.
-- Sugestões de equipamento em notas dos slots, inclusive nomes de únicos.
+- One Tree Spec, Skill Set, and Item Set with the same title for every valid stage.
+- Mapped passives, weapon sets 1/2, and per-node notes.
+- Gems and supports matched by exact catalog IDs, including gem notes.
+- Description, author, link, notes, intervals, and additional fields from the original JSON in the Notes section and report.
+- Equipment guidance in inventory-slot notes, including unique names.
 
-Um `.build` oficial frequentemente contém **orientações de equipamento**, não itens completos. Um nome de único não informa seus rolls. O programa cria o Item Set e suas notas, deixando `itemId=0` quando não há texto completo; não inventa base, afixos ou valores. Para fontes que disponibilizam texto real de item PoB, é aceita a extensão `raw_text` em uma entrada de `inventory_slots`, começando por `Rarity: ...`. O texto é copiado literalmente e o item recebe uma referência exclusiva. A interpretação de bases/mods desse texto continua a cargo do PoB2.
+An official `.build` often carries **equipment guidance**, rather than complete items. A unique name does not include its rolls. The converter creates the Item Set and notes, leaving `itemId=0` when no complete item text is available; it does not invent a base item, affixes, or values. For sources that provide actual PoB item text, an `inventory_slots` entry may use `raw_text` beginning with `Rarity: ...`. The text is copied literally and receives its own item reference. PoB2 remains responsible for parsing that item's base and modifiers.
 
-`level_interval` indica quando algo é recomendado para o personagem; **não é nível da gem**. Quando a entrada fornece explicitamente `level` e `quality`, eles são preservados. Caso contrário o XML deixa esses valores ausentes, e o PoB aplica seus próprios padrões. Não são inferidos números a partir de prosa ou prioridades de equipamento.
+`level_interval` says when something is recommended for the character; it is **not a gem level**. When the input explicitly provides `level` and `quality`, they are preserved. Otherwise, the XML omits them and PoB applies its own defaults. The tool does not infer numbers from prose or equipment priorities.
 
-Não são reconstruídos cálculos de DPS, configurações de combate, modificadores de itens descritos em prosa, escolhas de atributos/masteries a partir de notas, ligações de árvores ou intervalos como estágios extras. Notas de intervalos ficam preservadas; cada arquivo continua representando um estágio. Para arquivos que não seguem o esquema JSON oficial, será necessário um adaptador específico.
+The tool does not reconstruct DPS calculations, combat configuration, item modifiers described only in prose, attribute/mastery selections inferred from notes, tree links, or intervals as extra stages. Interval notes are preserved and each input file remains one stage. Inputs that do not follow the official JSON schema need a dedicated adapter.
 
-## Validação e referência Giga Bonk
+## Validation and Giga Bonk reference
 
-O fluxo implementado segue o resultado descrito no histórico: múltiplos `.build` → um PoB2 → conjuntos por estágio → IDs internos mapeados → XML → zlib → Base64 URL-safe.
+The implemented flow follows the established result: multiple `.build` files → one PoB2 → stage-specific sets → mapped internal IDs → XML → zlib → URL-safe Base64.
 
-A validação automática verifica a igualdade exata **XML → compressão/código → descompressão/XML**, a estrutura dos conjuntos e as referências dos itens. Os testes cobrem ordenação, arquivos inválidos, IDs desconhecidos, notas Unicode, armas, gems, slots, versões e proteção contra sobrescrita.
+Automatic validation checks exact **XML → compression/code → decompressed XML** equality, set structure, and item references. Tests cover sorting, invalid files, unknown IDs, Unicode notes, weapon sets, gems, slots, versions, and overwrite protection.
 
 ```powershell
 python -m unittest discover -s tests -v
 ```
 
-**Limite da validação:** os `.build` e o PoB final originais do Giga Bonk não estavam disponíveis nos anexos recuperados. Portanto, esta entrega não afirma reproduzir aqueles 9 estágios/208 nós nem ter sido importada interativamente no PoB2. O XML foi conferido contra os carregadores públicos do PoB2, e o round-trip não substitui uma conferência visual da árvore no aplicativo. Os exemplos incluídos são dados de teste, não o guia Giga Bonk.
+**Validation limitation:** the original Giga Bonk `.build` files and final PoB were not available in the recovered attachments. Therefore, this project does not claim to reproduce its nine stages / 208 nodes or to have been imported interactively in PoB2. The XML was checked against PoB2's public loaders, and round-trip validation does not replace visual verification of the tree inside the application. The bundled examples are test data, not the Giga Bonk guide.
 
-## Fontes
+## Security and publishing
 
-- [Esquema oficial GGG para .build](https://www.pathofexile.com/developer/docs/game#buildplanner)
-- [PoB2 — código e dados](https://github.com/PathOfBuildingCommunity/PathOfBuilding-PoE2)
-- Snapshot usado: `3887ae68a6a6b8bb7b41d1b61998f1aa184201e4`.
-- Campos XML conferidos em `PassiveSpec.lua`, `SkillsTab.lua`, `ItemsTab.lua`, `TreeTab.lua`, `Build.lua` e `GameVersions.lua` desse snapshot.
+The repository intentionally ignores credentials, certificates, local `.build` files, generated XML/TXT/report files, and release binaries. Keep only synthetic examples under `examples/`. Publish `Build2PoB2.exe` and ZIP packages through GitHub Releases instead of committing them to the repository history.
 
-O catálogo contém dados de jogo © Grinding Gear Games derivados do PoB2. Consulte `THIRD_PARTY_LICENSES.md` para os avisos do projeto de origem.
+## Sources
+
+- [Official GGG `.build` schema](https://www.pathofexile.com/developer/docs/game#buildplanner)
+- [PoB2 source code and data](https://github.com/PathOfBuildingCommunity/PathOfBuilding-PoE2)
+- Snapshot used: `3887ae68a6a6b8bb7b41d1b61998f1aa184201e4`.
+- XML fields were checked against `PassiveSpec.lua`, `SkillsTab.lua`, `ItemsTab.lua`, `TreeTab.lua`, `Build.lua`, and `GameVersions.lua` in that snapshot.
+
+The catalog contains game data © Grinding Gear Games, derived from PoB2. See `THIRD_PARTY_LICENSES.md` for notices from the source project.
