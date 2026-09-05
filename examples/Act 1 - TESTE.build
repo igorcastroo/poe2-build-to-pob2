@@ -1,0 +1,8 @@
+{
+  "name": "Exemplo técnico — não é um guia jogável",
+  "ascendancy": "Monk1",
+  "description": "Fixture sintética para testar a conversão. Não representa o Giga Bonk nem uma árvore conectada.",
+  "passives": [{"id": "lightning14", "additional_text": "Nota de teste: ação & dano"}],
+  "skills": [{"id": "Metadata/Items/Gems/SkillGemFallingThunder", "additional_text": "Nível não informado"}],
+  "inventory_slots": [{"inventory_id": "Weapon1", "additional_text": "Sugestão de teste: procurar um cajado. Sem atributos inventados."}]
+}

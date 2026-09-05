@@ -1,0 +1,8 @@
+{
+  "name": "Segundo estágio de teste",
+  "ascendancy": "Monk1",
+  "description": "Fixture sintética; não usar como recomendação de build.",
+  "passives": [{"id": "lightning14", "weapon_set": 2}],
+  "skills": [{"id": "Metadata/Items/Gems/SkillGemFallingThunder", "level": 5, "quality": 0}],
+  "inventory_slots": [{"inventory_id": "Weapon1", "additional_text": "Outra sugestão mantida separada por estágio."}]
+}

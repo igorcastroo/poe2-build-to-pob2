@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# PyInstaller output
+build/
+dist/
+*.spec
+
+# Files created by the converter
+*.report.json
+merged.xml
+merged.txt
