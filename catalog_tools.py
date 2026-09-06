@@ -39,13 +39,30 @@ def extract(source, version):
         flask_slot = slots.get(f'Flask1:{index + 2}')
         if flask_slot:
             slots.setdefault(f'Charm1:{index}', flask_slot)
+    quest_rewards = []
+    quest_lua = (source / 'Data/QuestRewards.lua').read_text(encoding='utf-8')
+    for block in re.findall(r'\n\t\{\n(.*?)\n\t\},', quest_lua, re.S):
+        def quest_field(name):
+            match = re.search(r'\["' + re.escape(name) + r'"\] = "([^"\n]*)"', block)
+            return match.group(1) if match else None
+        row = {name: quest_field(name) for name in ('Description', 'Area', 'Info', 'Stat')}
+        row = {name: value for name, value in row.items() if value is not None}
+        options = re.search(r'\["Options"\] = \{(.*?)\n\t\t\},', block, re.S)
+        if options:
+            row['Options'] = [value.replace(r'\n', '\n').replace(r'\t', '\t')
+                              for value in re.findall(r'"([^"\n]*)"', options.group(1))]
+        if 'Description' not in row or 'Area' not in row or 'Info' not in row:
+            raise ValueError('Quest reward extraction found an incomplete entry')
+        row['useConfig'] = '["useConfig"] = false' not in block
+        quest_rewards.append(row)
     classes = [{ 'name': c['name'], 'integerId': c['integerId'],
                  'ascendancies': [{ 'name': a['name'], 'internalId': a['internalId']} for a in c['ascendancies']]}
                for c in tree['classes']]
     if not nodes or not gems or not slots or not classes:
         raise ValueError('Catalog extraction produced an empty section')
     return {'tree_version': version, 'source': 'PathOfBuildingCommunity/PathOfBuilding-PoE2',
-            'passives': nodes, 'gems': gems, 'slots': slots, 'classes': classes}
+            'passives': nodes, 'gems': gems, 'slots': slots, 'classes': classes,
+            'quest_rewards': quest_rewards}
 
 
 if __name__ == '__main__':

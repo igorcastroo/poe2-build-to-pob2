@@ -31,3 +31,7 @@ dist/
 # Release artifacts: publish them through GitHub Releases, not Git history
 *.exe
 *.zip
+
+# Temporary alternate PyInstaller paths
+.build_config/
+.dist_config/

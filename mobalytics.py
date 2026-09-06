@@ -36,6 +36,7 @@ class ImportResult:
     guide_name: str
     files: list[Path]
     rejected: list[str]
+    quest_rewards: int
 
 
 def validate_guide_url(value: str) -> str:
@@ -119,6 +120,33 @@ def _variant_names(html: str, ids: set[str]) -> dict[str, str]:
     return names
 
 
+def _guide_quest_rewards(state) -> list[dict]:
+    """Keep the guide's explicit reward choices as local .build metadata."""
+    for value in _walk(state):
+        raw = value.get("questRewards") if isinstance(value, dict) else None
+        rows = raw.get("quests") if isinstance(raw, dict) else None
+        if not isinstance(rows, list):
+            continue
+        result = []
+        for row in rows:
+            quest = row.get("quest") if isinstance(row, dict) else None
+            reward = row.get("reward") if isinstance(row, dict) else None
+            if not isinstance(quest, dict) or not isinstance(reward, dict):
+                continue
+            quest_values = {key: quest.get(key) for key in ("slug", "name", "act", "area")}
+            modifiers = reward.get("modifiers")
+            reward_values = {key: reward.get(key) for key in ("slug", "name", "bakedDescription")}
+            if (not all(isinstance(item, str) and item for item in quest_values.values())
+                    or not all(isinstance(item, str) and item for item in reward_values.values())
+                    or not isinstance(modifiers, list)
+                    or not modifiers or not all(isinstance(item, str) and item for item in modifiers)):
+                continue
+            reward_values["modifiers"] = modifiers
+            result.append({"quest": quest_values, "reward": reward_values})
+        return result
+    return []
+
+
 def _safe_name(value: str, fallback: str) -> str:
     value = re.sub(r'[<>:"/\\|?*\x00-\x1f]', " ", value).strip().rstrip(".")
     return (value[:140] or fallback).strip()
@@ -148,7 +176,7 @@ def _export_variant(session, url: str, document_id: str, variant_id: str):
 
 
 def import_guide(url: str, destination: str | Path) -> ImportResult:
-    """Fetch every public guide variant and save only validated official .build files."""
+    """Fetch public variants and retain explicit guide reward choices locally."""
     url = validate_guide_url(url)
     session = _client()
     response = session.get(url, timeout=30)
@@ -159,12 +187,20 @@ def import_guide(url: str, destination: str | Path) -> ImportResult:
     state = _preloaded_state(response.text)
     document_id, variant_ids = _document_id(state), _variant_ids(state)
     variant_names = _variant_names(response.text, set(variant_ids))
+    quest_rewards = _guide_quest_rewards(state)
     destination = Path(destination)
     destination.mkdir(parents=True, exist_ok=True)
     files, rejected, used_names = [], [], set()
     for variant_id in variant_ids:
         try:
             data, text = _export_variant(session, url, document_id, variant_id)
+            if quest_rewards:
+                data["poe2_build_to_pob2"] = {
+                    "source": {"provider": "Mobalytics", "guide_url": url},
+                    "quest_rewards": quest_rewards,
+                }
+                validate_source(data)
+                text = json.dumps(data, ensure_ascii=False, separators=(",", ":")) + "\n"
             name = _safe_name(variant_names.get(variant_id, data.get("name", "")), f"Variant {variant_id}")
             candidate, suffix = name, 2
             while candidate.casefold() in used_names:
@@ -181,4 +217,4 @@ def import_guide(url: str, destination: str | Path) -> ImportResult:
         raise MobalyticsImportError(f"No valid .build files were imported: {detail}")
     guide_name = next((value.get("name") for value in _walk(state)
                        if isinstance(value.get("name"), str) and value.get("buildVariants")), "Mobalytics guide")
-    return ImportResult(guide_name, files, rejected)
+    return ImportResult(guide_name, files, rejected, len(quest_rewards))

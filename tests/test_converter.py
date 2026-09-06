@@ -143,6 +143,28 @@ class ConverterTests(unittest.TestCase):
         with self.assertRaises(ConversionError):
             convert([self.file('Act 1', self.build())], tree_version='0_4')
 
+    def test_explicit_mobalytics_quest_reward_becomes_config_input(self):
+        rewards = [
+            {'quest': {'slug': 'g1-2-mappincarrioncrone', 'name': 'Beira of the Rotten Pack',
+                       'act': 'Act 1', 'area': 'Clearfell'},
+             'reward': {'slug': 'g1-2-carrioncroneslain', 'name': 'Beira of the Rotten Pack',
+                        'bakedDescription': '+10% to Cold Resistance',
+                        'modifiers': ['+10% to Cold Resistance']}},
+            {'quest': {'slug': 'g2-6-mappinmedallion', 'name': 'Medallion',
+                       'act': 'Act 2', 'area': 'Valley of the Titans'},
+             'reward': {'slug': 'g2-6-fragmentaltarrightactive', 'name': 'Medallion',
+                        'bakedDescription': '30% increased Charm Effect Duration, +1 Charm Slot',
+                        'modifiers': ['30% increased Charm Effect Duration', '+1 Charm Slot']}},
+        ]
+        path = self.file('Act 2', self.build(poe2_build_to_pob2={'quest_rewards': rewards}))
+        xml, code, report = convert([path])
+        root = validate_roundtrip(xml, code)
+        inputs = {node.get('name'): node for node in root.findall('Config/Input')}
+        self.assertEqual(inputs['questAct 1ClearfellBeira'].get('boolean'), 'true')
+        self.assertEqual(inputs['questAct 2Valley of the TitansMedallion'].get('string'),
+                         '30% increased Charm Effect Duration\n\t+1 Charm Slot')
+        self.assertEqual(report['quest_rewards'][0]['mapped'], sorted(inputs))
+
 
 if __name__ == '__main__':
     unittest.main()

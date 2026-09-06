@@ -13,12 +13,12 @@ TEXT = {
         'subtitle': 'Adicione os .build, confira a ordem e gere XML + código de importação.',
         'add': 'Adicionar arquivos', 'remove': 'Remover', 'up': '↑ Subir', 'down': '↓ Descer', 'sort': 'Ordenar estágios',
         'url': 'Link do guia Mobalytics', 'import_url': 'Importar guia',
-        'url_needed': 'Cole um link p?blico do guia Mobalytics.', 'import_error': 'N?o foi poss?vel importar o guia',
-        'imported': '{stages} est?gios importados de:\n{guide}\nArquivos tempor?rios v?lidos foram adicionados ? lista.',
+        'url_needed': 'Cole um link público do guia Mobalytics.', 'import_error': 'Não foi possível importar o guia',
+        'imported': '{stages} estágios importados de:\n{guide}\nArquivos temporários válidos foram adicionados à lista.\n{rewards} escolha(s) de recompensa foram registradas; as compatíveis serão ativadas em Config → Quest Rewards ao gerar.',
         'import_rejected': '\n\n{count} variante(s) rejeitada(s):\n{details}',
         'url': 'Mobalytics guide URL', 'import_url': 'Import guide',
         'url_needed': 'Paste a public Mobalytics guide URL.', 'import_error': 'Could not import guide',
-        'imported': '{stages} stages imported from:\n{guide}\nValidated temporary files were added to the list.',
+        'imported': '{stages} stages imported from:\n{guide}\nValidated temporary files were added to the list.\n{rewards} quest reward choice(s) were recorded; compatible choices will be enabled in Config → Quest Rewards when you create the PoB2.',
         'import_rejected': '\n\n{count} rejected variant(s):\n{details}',
         'mapping': 'Mapa alternativo (opcional)', 'class': 'Classe (se não identificada)', 'choose': 'Selecionar',
         'partial': 'Permitir conversão parcial: omitir IDs desconhecidos e registrar no relatório', 'generate': 'Gerar PoB2…', 'copy': 'Copiar código',
@@ -117,7 +117,8 @@ class App:
             result = import_guide(url, self.import_temp.name)
             self.files.extend(str(path) for path in result.files if str(path) not in self.files)
             self.sort()
-            message = self.t['imported'].format(stages=len(result.files), guide=result.guide_name)
+            message = self.t['imported'].format(stages=len(result.files), guide=result.guide_name,
+                                                rewards=result.quest_rewards)
             if result.rejected:
                 message += self.t['import_rejected'].format(count=len(result.rejected), details='\n'.join(result.rejected))
             self.log(message)

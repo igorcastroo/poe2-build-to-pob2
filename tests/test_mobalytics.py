@@ -1,7 +1,7 @@
 import unittest
 
-from mobalytics import (MobalyticsImportError, _document_id, _preloaded_state,
-                        _variant_ids, _variant_names, validate_guide_url)
+from mobalytics import (MobalyticsImportError, _document_id, _guide_quest_rewards,
+                        _preloaded_state, _variant_ids, _variant_names, validate_guide_url)
 
 
 class MobalyticsTests(unittest.TestCase):
@@ -35,6 +35,19 @@ class MobalyticsTests(unittest.TestCase):
     def test_variant_names_come_from_tabs(self):
         html = '<div data-key="act-1"><span>Act 1</span></div>'
         self.assertEqual(_variant_names(html, {'act-1'}), {'act-1': 'Act 1'})
+
+    def test_quest_rewards_keep_only_explicit_valid_choices(self):
+        state = {'questRewards': {'quests': [
+            {'quest': {'slug': 'g1-2', 'name': 'Beira', 'act': 'Act 1', 'area': 'Clearfell'},
+             'reward': {'slug': 'reward', 'name': 'Beira', 'bakedDescription': '+10% to Cold Resistance',
+                        'modifiers': ['+10% to Cold Resistance']}},
+            {'quest': {'slug': 'bad'}, 'reward': {}},
+        ]}}
+        self.assertEqual(_guide_quest_rewards(state), [{
+            'quest': {'slug': 'g1-2', 'name': 'Beira', 'act': 'Act 1', 'area': 'Clearfell'},
+            'reward': {'slug': 'reward', 'name': 'Beira', 'bakedDescription': '+10% to Cold Resistance',
+                       'modifiers': ['+10% to Cold Resistance']},
+        }])
 
 
 if __name__ == '__main__':

@@ -37,6 +37,8 @@ Paste a public PoE2 guide URL in the GUI and select **Import guide**. The app op
 
 Only successfully validated files are added. A malformed, empty, unavailable, or oversized variant is shown as rejected and never becomes an invented stage. The downloaded files live in a temporary application folder and are deleted when the program closes; the resulting XML, code, and report are saved only where you choose.
 
+The public guide page can also state a selected **quest reward**. Those explicit selections are recorded in the temporary `.build` metadata and translated into PoB2's **Config → Quest Rewards** inputs only when the reward, area, act, and modifier text exactly match the bundled PoB2 0_5 catalog. Rewards that do not match stay in the preserved source JSON and report; they are never guessed. The Mobalytics Build Planner export does not expose combat, enemy, DPS, or general Config settings, so those fields remain at PoB2 defaults for you to adjust.
+
 This integration depends on Mobalytics' public page and export format, so it can require maintenance if they change their site. The conversion after import remains local.
 
 ## CLI
@@ -102,7 +104,7 @@ An official `.build` often carries **equipment guidance**, rather than complete 
 
 `level_interval` says when something is recommended for the character; it is **not a gem level**. When the input explicitly provides `level` and `quality`, they are preserved. Otherwise, the XML omits them and PoB applies its own defaults. The tool does not infer numbers from prose or equipment priorities.
 
-The tool does not reconstruct DPS calculations, combat configuration, item modifiers described only in prose, attribute/mastery selections inferred from notes, tree links, or intervals as extra stages. Interval notes are preserved and each input file remains one stage. Inputs that do not follow the official JSON schema need a dedicated adapter.
+The tool does not reconstruct DPS calculations, combat configuration, item modifiers described only in prose, attribute/mastery selections inferred from notes, tree links, or intervals as extra stages. The exception is an explicit Mobalytics quest-reward choice that exactly matches the bundled PoB2 catalog; it becomes a PoB2 Config input. Interval notes are preserved and each input file remains one stage. Inputs that do not follow the official JSON schema need a dedicated adapter.
 
 ## Validation and Giga Bonk reference
 

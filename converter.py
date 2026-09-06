@@ -131,6 +131,86 @@ def validate_source(data):
     strings(data)
 
 
+def _normal(value):
+    """Compare public quest text without making a name-based stat guess."""
+    return re.sub(r'[^a-z0-9]+', '', value.casefold())
+
+
+def _same_area(left, right):
+    return _normal(left).removeprefix('the') == _normal(right).removeprefix('the')
+
+
+def _mobalytics_rewards(data):
+    """Read the optional, locally-added Mobalytics guide metadata safely."""
+    extra = data.get('poe2_build_to_pob2')
+    rewards = extra.get('quest_rewards') if isinstance(extra, dict) else None
+    if not isinstance(rewards, list):
+        return []
+    return [row for row in rewards if isinstance(row, dict)
+            and isinstance(row.get('quest'), dict) and isinstance(row.get('reward'), dict)]
+
+
+def _reward_matches_pob(source, pob):
+    quest, reward = source['quest'], source['reward']
+    if not all(isinstance(quest.get(key), str) for key in ('slug', 'act', 'area', 'name')):
+        return False
+    if not all(isinstance(reward.get(key), str) for key in ('name', 'bakedDescription')):
+        return False
+    description = pob['Description']
+    if description.startswith('Interlude'):
+        number = description.rsplit(' ', 1)[-1]
+        if not quest['slug'].casefold().startswith(f'p{number}-'):
+            return False
+    elif _normal(quest['act']) != _normal(description):
+        return False
+    if not _same_area(quest['area'], pob['Area']):
+        return False
+    names = [_normal(quest['name']), _normal(reward['name'])]
+    info = _normal(pob['Info'])
+    # The quest and reward labels may add titles (for example "... Shrine").
+    if not any(name in info or info in name for name in names):
+        return False
+    modifiers = reward.get('modifiers')
+    if not isinstance(modifiers, list) or not modifiers or not all(isinstance(value, str) for value in modifiers):
+        return False
+    actual = [_normal(value) for value in modifiers]
+    if 'Stat' in pob:
+        expected = [_normal(value) for value in pob['Stat'].splitlines() if value.strip()]
+        return actual == expected
+    for option in pob.get('Options', []):
+        expected = [_normal(value) for value in option.splitlines() if value.strip()]
+        if actual == expected:
+            return option
+    return False
+
+
+def quest_config_inputs(stages, catalog, report):
+    """Map explicit Mobalytics quest choices to the single PoB Config section."""
+    reference = [row for row in catalog.get('quest_rewards', [])
+                 if isinstance(row, dict) and row.get('useConfig')
+                 and all(isinstance(row.get(key), str) for key in ('Description', 'Area', 'Info'))]
+    per_stage, diagnostics = [], []
+    for path, data in stages:
+        selected, rejected = {}, []
+        for source in _mobalytics_rewards(data):
+            match = next((pob for pob in reference if _reward_matches_pob(source, pob)), None)
+            label = f"{source['quest'].get('act', '?')}: {source['quest'].get('area', '?')}"
+            if not match:
+                rejected.append(label)
+                continue
+            name = 'quest' + match['Description'] + match['Area'] + match['Info']
+            value = _reward_matches_pob(source, match)
+            selected[name] = ('string', value) if isinstance(value, str) else ('boolean', 'true')
+        if selected or rejected:
+            diagnostics.append({'file': str(path), 'mapped': sorted(selected), 'not_mapped': rejected})
+        per_stage.append(selected)
+    nonempty = [values for values in per_stage if values]
+    if nonempty and any(values != nonempty[0] for values in nonempty[1:]):
+        raise ConversionError('Recompensas de missão conflitantes entre estágios; ajuste no PoB2 manualmente', report)
+    report['quest_rewards'] = diagnostics
+    return nonempty[0] if nonempty else {}
+
+
 def resolve_class(data, catalog, fallback):
     class_name = data.get('class') or fallback
     asc = data.get('ascendancy', '')
@@ -173,6 +253,15 @@ def validate_roundtrip(xml, code, expected_stages=None):
     item_ids = {x.get('id') for x in root.findall('Items/Item')}
     if len(item_ids) != len(root.findall('Items/Item')):
         raise ValueError('IDs de item duplicados')
+    config = root.find('Config')
+    if config is None:
+        raise ValueError('Config ausente')
+    for item in config.findall('Input'):
+        values = [key for key in ('boolean', 'string', 'number') if item.get(key) is not None]
+        if not item.get('name') or len(values) != 1:
+            raise ValueError('Input de Config inválido')
+        if values == ['boolean'] and item.get('boolean') not in ('true', 'false'):
+            raise ValueError('Boolean de Config inválido')
     for i, (tree, skill, item) in enumerate(zip(specs, skills, items), 1):
         if skill.get('id') != str(i) or item.get('id') != str(i):
             raise ValueError('IDs de conjuntos inconsistentes')
@@ -230,6 +319,7 @@ def convert(paths, catalog_path=DEFAULT_CATALOG, map_path=None, tree_version=Non
         resolved = [resolve_class(d, catalog, fallback) for _, d in stages]
     except ValueError as e:
         raise ConversionError(str(e), report) from e
+    config_inputs = quest_config_inputs(stages, catalog, report)
     root = ET.Element('PathOfBuilding')
     ET.SubElement(root, 'Build', {'targetVersion': '0_1', 'className': resolved[0][0]['name'],
                                 'ascendClassName': resolved[0][2]['name'], 'viewMode': 'TREE'})
@@ -343,7 +433,9 @@ def convert(paths, catalog_path=DEFAULT_CATALOG, map_path=None, tree_version=Non
             raise ConversionError('Há IDs sem mapeamento. Corrija o mapa ou use --allow-partial explicitamente', report)
         notes.append('PARTIAL CONVERSION: unmapped IDs were omitted from active sets. See original JSON and report.')
     ET.SubElement(root, 'Notes').text = '\n'.join(notes)
-    ET.SubElement(root, 'Config')
+    config = ET.SubElement(root, 'Config')
+    for name, (kind, value) in sorted(config_inputs.items()):
+        ET.SubElement(config, 'Input', name=name, **{kind: value})
     ET.indent(root)
     xml = ET.tostring(root, encoding='utf-8', xml_declaration=True)
     code = encode(xml)
