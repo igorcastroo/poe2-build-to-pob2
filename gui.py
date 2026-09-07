@@ -22,7 +22,7 @@ TEXT = {
         'files_title': 'Selecionar arquivos', 'files_needed': 'Adicione pelo menos um arquivo .build.', 'save_title': 'Salvar PoB2', 'save_name': 'merged.xml',
         'built': '{stages} estágios gerados. Round-trip validado.\n{skipped} arquivos ignorados; {warnings} observações; parcial: {partial}.\n{paths}\nNo PoB2: Import/Export Build → Import from Code.',
         'error_title': 'Não foi possível converter', 'copied': 'Código copiado. Cole no PoB2 → Import/Export Build → Import from Code.',
-        'all_files': 'Todos', 'build_files': 'PoE2 builds', 'json_files': 'JSON',
+        'all_files': 'Todos', 'build_files': 'PoE2 builds', 'json_files': 'JSON', 'auto_copied': 'Código de importação copiado automaticamente. Cole no PoB2 → Import/Export Build → Import from Code.',
     },
     'en-US': {
         'title': 'Build → PoB2 | Stage Converter', 'headline': 'Many stages. One PoB2.',
@@ -38,7 +38,7 @@ TEXT = {
         'files_title': 'Select files', 'files_needed': 'Add at least one .build file.', 'save_title': 'Save PoB2', 'save_name': 'merged.xml',
         'built': '{stages} stages created. Round-trip validated.\n{skipped} files skipped; {warnings} notes; partial: {partial}.\n{paths}\nIn PoB2: Import/Export Build → Import from Code.',
         'error_title': 'Could not convert', 'copied': 'Code copied. Paste it in PoB2 → Import/Export Build → Import from Code.',
-        'all_files': 'All files', 'build_files': 'PoE2 builds', 'json_files': 'JSON',
+        'all_files': 'All files', 'build_files': 'PoE2 builds', 'json_files': 'JSON', 'auto_copied': 'Import code copied automatically. Paste it in PoB2 → Import/Export Build → Import from Code.',
     },
 }
 
@@ -150,9 +150,11 @@ class App:
             result = convert(self.files, catalog_path=self.catalog.get(), map_path=self.mapping.get() or None, class_name=self.cls.get() or None, manual_order=True, allow_partial=self.partial.get())
             destination = filedialog.asksaveasfilename(title=self.t['save_title'], defaultextension='.xml', initialfile=self.t['save_name'], filetypes=[('PoB2 XML', '*.xml')])
             if not destination: return
-            paths = write_outputs(str(Path(destination).with_suffix('')), *result)
+            paths = write_outputs(str(Path(destination).with_suffix('')), *result, overwrite=True)
             self.code = result[1]; self.copy_button.configure(state='normal'); report = result[2]
-            self.log(self.t['built'].format(stages=len(report['stages']), skipped=len(report['skipped']), warnings=sum(len(s['warnings']) for s in report['stages']), partial=report['partial'], paths='\n'.join(str(p) for p in paths)))
+            self.root.clipboard_clear(); self.root.clipboard_append(self.code)
+            message = self.t['built'].format(stages=len(report['stages']), skipped=len(report['skipped']), warnings=sum(len(s['warnings']) for s in report['stages']), partial=report['partial'], paths='\n'.join(str(p) for p in paths))
+            self.log(message + '\n' + self.t['auto_copied'])
         except (OSError, ValueError, KeyError) as e:
             details = str(e)
             if isinstance(e, ConversionError) and e.report: details += '\n' + json.dumps(e.report, ensure_ascii=False, indent=2)

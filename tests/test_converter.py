@@ -139,6 +139,9 @@ class ConverterTests(unittest.TestCase):
         self.assertTrue(all(p.exists() for p in paths))
         with self.assertRaises(ConversionError):
             write_outputs(self.base / 'merged', *result)
+        overwritten = write_outputs(self.base / 'merged', *result, overwrite=True)
+        self.assertEqual(overwritten, paths)
+        self.assertEqual(overwritten[0].read_bytes(), result[0])
 
     def test_wrong_version(self):
         with self.assertRaises(ConversionError):

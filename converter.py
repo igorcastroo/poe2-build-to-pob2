@@ -444,18 +444,18 @@ def convert(paths, catalog_path=DEFAULT_CATALOG, map_path=None, tree_version=Non
     return xml, code, report
 
 
-def write_outputs(prefix, xml, code, report):
+def write_outputs(prefix, xml, code, report, overwrite=False):
     prefix = Path(prefix)
     prefix.parent.mkdir(parents=True, exist_ok=True)
     paths = [Path(str(prefix) + suffix) for suffix in ('.xml', '.txt', '.report.json')]
-    for path in paths:
-        if path.exists():
-            raise ConversionError(f'Saída já existe: {path}. Escolha outro nome')
+    if not overwrite:
+        for path in paths:
+            if path.exists():
+                raise ConversionError(f'Saída já existe: {path}. Escolha outro nome')
     paths[0].write_bytes(xml)
     paths[1].write_text(code + '\n', encoding='ascii')
     paths[2].write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
     return paths
-
 
 def main(argv=None):
     p = argparse.ArgumentParser(description='Vários .build -> um PoB2, sem dependências externas')
