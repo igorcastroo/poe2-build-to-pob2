@@ -243,7 +243,7 @@ def validate_roundtrip(xml, code, expected_stages=None):
     if decode(code) != xml:
         raise ValueError('Round-trip não preservou o XML')
     root = ET.fromstring(xml)
-    if root.tag != 'PathOfBuilding':
+    if root.tag != 'PathOfBuilding2':
         raise ValueError('Raiz XML inválida')
     specs, skills, items = [root.findall(p) for p in ('Tree/Spec', 'Skills/SkillSet', 'Items/ItemSet')]
     if not specs or len(specs) != len(skills) or len(specs) != len(items):
@@ -320,7 +320,7 @@ def convert(paths, catalog_path=DEFAULT_CATALOG, map_path=None, tree_version=Non
     except ValueError as e:
         raise ConversionError(str(e), report) from e
     config_inputs = quest_config_inputs(stages, catalog, report)
-    root = ET.Element('PathOfBuilding')
+    root = ET.Element('PathOfBuilding2')
     ET.SubElement(root, 'Build', {'targetVersion': '0_1', 'className': resolved[0][0]['name'],
                                 'ascendClassName': resolved[0][2]['name'], 'viewMode': 'TREE'})
     tree = ET.SubElement(root, 'Tree', activeSpec='1')

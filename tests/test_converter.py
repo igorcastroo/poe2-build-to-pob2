@@ -30,6 +30,7 @@ class ConverterTests(unittest.TestCase):
         files = [self.file(n, self.build(description='A & B <red>{ação}\nLinha 2')) for n in ['Mirror Tier', 'Act 2', 'Act 1']]
         xml, code, report = convert(files)
         root = validate_roundtrip(xml, code, 3)
+        self.assertEqual(root.tag, 'PathOfBuilding2')
         self.assertEqual([s.get('title') for s in root.findall('Tree/Spec')], ['Act 1', 'Act 2', 'Mirror Tier'])
         self.assertIn('ação', root.find('Notes').text)
         self.assertEqual(decode(code.rstrip('=')), xml)
