@@ -117,11 +117,14 @@ class App:
             result = import_guide(url, self.import_temp.name)
             self.files.extend(str(path) for path in result.files if str(path) not in self.files)
             self.sort()
+            generated = convert(self.files, catalog_path=self.catalog.get(), map_path=self.mapping.get() or None,
+                                class_name=self.cls.get() or None, manual_order=True,
+                                allow_partial=self.partial.get())
             message = self.t['imported'].format(stages=len(result.files), guide=result.guide_name,
                                                 rewards=result.quest_rewards)
             if result.rejected:
                 message += self.t['import_rejected'].format(count=len(result.rejected), details='\n'.join(result.rejected))
-            self.log(message)
+            self.show_import_code(generated[1], message)
         except (MobalyticsImportError, OSError, ValueError) as e:
             self.log(str(e)); messagebox.showerror(self.t['import_error'], str(e))
         finally:
@@ -152,16 +155,22 @@ class App:
             destination = filedialog.asksaveasfilename(title=self.t['save_title'], defaultextension='.xml', initialfile=self.t['save_name'], filetypes=[('PoB2 XML', '*.xml')])
             if not destination: return
             paths = write_outputs(str(Path(destination).with_suffix('')), *result, overwrite=True)
-            self.code = result[1]; self.copy_button.configure(state='normal'); report = result[2]
-            self.root.clipboard_clear(); self.root.clipboard_append(self.code)
+            report = result[2]
             self.guide_url.set(guide_url_before)
             message = self.t['built'].format(stages=len(report['stages']), skipped=len(report['skipped']), warnings=sum(len(s['warnings']) for s in report['stages']), partial=report['partial'], paths='\n'.join(str(p) for p in paths))
-            self.log(message + '\n' + self.t['auto_copied'] + '\n\n' + self.t['import_code_label'] + '\n' + self.code)
-            self.status.see('end')
+            self.show_import_code(result[1], message)
         except (OSError, ValueError, KeyError) as e:
             details = str(e)
             if isinstance(e, ConversionError) and e.report: details += '\n' + json.dumps(e.report, ensure_ascii=False, indent=2)
             self.log(details); messagebox.showerror(self.t['error_title'], str(e))
+
+    def show_import_code(self, code, message):
+        self.code = code
+        self.copy_button.configure(state='normal')
+        self.root.clipboard_clear()
+        self.root.clipboard_append(self.code)
+        self.log(message + '\n' + self.t['auto_copied'] + '\n\n' + self.t['import_code_label'] + '\n' + self.code)
+        self.status.see('end')
 
     def copy(self):
         if self.code:
