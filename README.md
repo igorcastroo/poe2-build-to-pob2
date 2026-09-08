@@ -1,14 +1,32 @@
 # PoE2 Build to PoB2
 
-Repository name: `poe2-build-to-pob2`
+![A passive-skill tree flowing into a PoB2 planner and import code](assets/poe2-build-to-pob2-hero.png)
 
-**Build → PoB2** merges multiple Mobalytics / PoE2 `.build` stages into one Path of Building 2 build.
+**Mobalytics guides to one staged Path of Building 2 build.**
 
-It converts Mobalytics / PoE2 JSON `.build` files into **one PoB2 XML file**, an **import code**, and a **JSON report**. The GUI can also import every official `.build` variant from a public Mobalytics PoE2 guide URL. It requires Python 3.10 or newer. The source interface uses Tkinter, included with the standard Windows Python installation.
+`poe2-build-to-pob2` imports PoE2 `.build` files or a public Mobalytics guide URL, then creates one PoB2 XML, import code, and JSON report. Every valid guide variant becomes a matching Tree Spec, Skill Set, and Item Set that you can select inside PoB2.
+
+## What it does
+
+- Imports multiple local `.build` files and orders campaign, interlude, endgame, high-investment, and mirror stages.
+- Imports every public **Mobalytics Build Planner Export** variant from one guide URL. The import code is generated and copied automatically.
+- Converts GGG passive IDs to PoB2 numeric hashes with the bundled 0_5 catalog or a validated alternate map.
+- Preserves active gems, support gems, stage notes, weapon sets, and matching quest-reward selections.
+- Creates editable PoB2 equipment suggestions from Mobalytics bases, named uniques, and supplied modifier lines when the official PoB2 catalog can confirm the item base.
+- Generates XML, a zlib + Base64 import code, and a report. XML/code round-trip and set references are validated before output.
+- Offers Portuguese (Brazil) and English (US) interface text. Translation changes only the application interface, never imported build data.
+
+The Windows interface is built with Tkinter; the source requires Python 3.10 or newer.
 
 ## Windows executable
 
-Open `Build2PoB2.exe`. It is the ready-to-run Windows version and includes Python, Tkinter, and the 0_5 tree catalog. It does not require Python. Importing local `.build` files works offline; importing a Mobalytics URL requires internet access. The application opens in Portuguese (Brazil); use the flags at the top to switch at any time between **Portuguese (Brazil)** and **English (US)**.
+Open `Build2PoB2.exe`. It is the ready-to-run Windows version and includes Python, Tkinter, the PoB2 0_5 catalog, item bases, and unique-base references. Python is not required.
+
+- Local `.build` conversion works offline.
+- A Mobalytics guide URL needs internet access only while its public variants are downloaded.
+- **Import guide** imports, converts, shows, and copies the PoB2 code in one action.
+- **Create PoB2** additionally saves XML, code, and report to the location you choose; an existing selected output is replaced.
+- The app starts in Portuguese (Brazil). Use the flags at the top to change the visible interface to English (US).
 
 Download the executable and ZIP package from the [latest release](https://github.com/igorcastroo/poe2-build-to-pob2/releases/latest).
 
@@ -16,20 +34,21 @@ Download the executable and ZIP package from the [latest release](https://github
 
 1. Extract the ZIP to a folder.
 2. Open **Abrir Conversor.bat**, or run `py converter.py --gui` from a terminal in that folder.
-3. Add the `.build` files, or paste a public `https://mobalytics.gg/poe-2/builds/...` guide URL and select **Import guide**. The list is sorted automatically; use Move Up / Move Down to adjust it.
-4. Choose a class only if the files' ascendancy does not identify it.
-5. Select **Create PoB2**, choose a new output name, then select **Copy code**.
-6. In PoB2, use **Import/Export Build → Import from Code**.
+3. Add local `.build` files, or paste a public `https://mobalytics.gg/poe-2/builds/...` guide URL and select **Import guide**.
+4. Review the stages and move them if necessary. The list order is the final PoB2 order.
+5. The URL workflow automatically creates and copies the import code. For local files, select **Create PoB2** to create and copy the code.
+6. Use **Create PoB2** when you also want saved `.xml`, `.txt`, and `.report.json` files.
+7. In PoB2, select **Import/Export Build ? Import from Code** and paste the copied code.
 
-The tool creates `name.xml`, `name.txt`, and `name.report.json`. It never overwrites an existing output. The XML can also be placed in the PoB2 builds folder.
+The GUI replaces output files after you select their destination. The CLI remains protective and refuses to overwrite an existing prefix. XML can also be placed in the PoB2 builds folder.
 
-This development path requires Python with Tkinter. If Windows does not recognize `py` or `python`, install Python and enable the option to add it to PATH. End users should download `Build2PoB2.exe` from the latest release instead.
-
-Install the runtime dependency before running the source version:
+This development path requires Python with Tkinter. Install the runtime dependency before running the source version:
 
 ```powershell
 python -m pip install -r requirements.txt
 ```
+
+End users should download `Build2PoB2.exe` from the latest release.
 
 ## Mobalytics guide URL import
 

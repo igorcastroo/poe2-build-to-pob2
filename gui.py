@@ -9,8 +9,8 @@ from mobalytics import MobalyticsImportError, import_guide
 
 TEXT = {
     'pt-BR': {
-        'title': 'Build → PoB2 | Conversor de estágios', 'headline': 'Vários estágios. Um único PoB2.',
-        'subtitle': 'Adicione os .build, confira a ordem e gere XML + código de importação.',
+        'title': 'PoE2 Build to PoB2 | Mobalytics → PoB2', 'headline': 'Guias Mobalytics. Um único PoB2.',
+        'subtitle': 'Importe uma URL ou .builds e gere árvore, skills, itens e código PoB2 por estágio.',
         'add': 'Adicionar arquivos', 'remove': 'Remover', 'up': '↑ Subir', 'down': '↓ Descer', 'sort': 'Ordenar estágios',
         'url': 'Link do guia Mobalytics', 'import_url': 'Importar guia',
         'url_needed': 'Cole um link público do guia Mobalytics.', 'import_error': 'Não foi possível importar o guia',
@@ -18,15 +18,15 @@ TEXT = {
         'import_rejected': '\n\n{count} variante(s) rejeitada(s):\n{details}',
         'mapping': 'Mapa alternativo (opcional)', 'class': 'Classe (se não identificada)', 'choose': 'Selecionar',
         'partial': 'Permitir conversão parcial: omitir IDs desconhecidos e registrar no relatório', 'generate': 'Gerar PoB2…', 'copy': 'Copiar código',
-        'welcome': 'Tudo funciona localmente. Equipamentos descritos apenas como sugestões ficam nas notas.\nO catálogo incluído corresponde à árvore 0_5.',
+        'welcome': 'Importe guias Mobalytics ou arquivos .build. Cada estágio gera árvore, skills e itens editáveis quando a base é confirmada.\nO catálogo incluído corresponde à árvore 0_5.',
         'files_title': 'Selecionar arquivos', 'files_needed': 'Adicione pelo menos um arquivo .build.', 'save_title': 'Salvar PoB2', 'save_name': 'merged.xml',
         'built': '{stages} estágios gerados. Round-trip validado.\n{skipped} arquivos ignorados; {warnings} observações; parcial: {partial}.\n{paths}\nNo PoB2: Import/Export Build → Import from Code.',
         'error_title': 'Não foi possível converter', 'copied': 'Código copiado. Cole no PoB2 → Import/Export Build → Import from Code.',
         'all_files': 'Todos', 'build_files': 'PoE2 builds', 'json_files': 'JSON', 'auto_copied': 'Código de importação copiado automaticamente.', 'import_code_label': 'Código para colar no PoB2 → Import/Export Build → Import from Code:',
     },
     'en-US': {
-        'title': 'Build → PoB2 | Stage Converter', 'headline': 'Many stages. One PoB2.',
-        'subtitle': 'Add .build files, review their order, then create XML and an import code.',
+        'title': 'PoE2 Build to PoB2 | Mobalytics → PoB2', 'headline': 'Mobalytics guides. One PoB2.',
+        'subtitle': 'Import a URL or .build files to create staged trees, skills, items, and a PoB2 code.',
         'url': 'Mobalytics guide URL', 'import_url': 'Import guide',
         'url_needed': 'Paste a public Mobalytics guide URL.', 'import_error': 'Could not import guide',
         'imported': '{stages} stages imported from:\n{guide}\nValidated temporary files were added to the list.\n{rewards} quest reward choice(s) were recorded; compatible choices will be enabled in Config → Quest Rewards when you create the PoB2.',
@@ -34,7 +34,7 @@ TEXT = {
         'add': 'Add files', 'remove': 'Remove', 'up': '↑ Move up', 'down': '↓ Move down', 'sort': 'Sort stages',
         'mapping': 'Alternate map (optional)', 'class': 'Class (when not detected)', 'choose': 'Browse',
         'partial': 'Allow partial conversion: omit unknown IDs and record them in the report', 'generate': 'Create PoB2…', 'copy': 'Copy code',
-        'welcome': 'Everything runs locally. Equipment described only as guidance remains in notes.\nThe bundled catalog matches tree 0_5.',
+        'welcome': 'Import Mobalytics guides or .build files. Each stage creates a tree, skills, and editable items when its base is confirmed.\nThe bundled catalog matches tree 0_5.',
         'files_title': 'Select files', 'files_needed': 'Add at least one .build file.', 'save_title': 'Save PoB2', 'save_name': 'merged.xml',
         'built': '{stages} stages created. Round-trip validated.\n{skipped} files skipped; {warnings} notes; partial: {partial}.\n{paths}\nIn PoB2: Import/Export Build → Import from Code.',
         'error_title': 'Could not convert', 'copied': 'Code copied. Paste it in PoB2 → Import/Export Build → Import from Code.',
