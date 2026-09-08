@@ -107,7 +107,7 @@ class ConverterTests(unittest.TestCase):
         root = validate_roundtrip(xml, code)
         items = root.findall('Items/Item')
         self.assertEqual(len(items), 2)
-        self.assertIn('Rarity: RARE\nMobalytics Suggestion\nGold Amulet', items[0].text)
+        self.assertIn('Rarity: RARE\nGold Amulet\nGold Amulet', items[0].text)
         self.assertIn('+9% to all Elemental Resistances', items[0].text)
         self.assertEqual(items[1].text, 'Rarity: UNIQUE\nForgotten Warden\nPrimal Markings\n')
         self.assertTrue(all(slot.get('itemId') != '0' for slot in root.findall('Items/ItemSet/Slot')))

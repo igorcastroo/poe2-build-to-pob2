@@ -231,8 +231,8 @@ def suggestion_item_text(item, catalog):
     A Build Planner export supplies a base/unique name and numbered modifier
     lines, rather than a complete PoB item copy. We only construct an item
     when its base is in the bundled PoB2 catalog. Every modifier is copied
-    from the export. The rare name and item level are parser scaffolding, so
-    suggestions are visibly distinct and editable in PoB2.
+    from the export. PoB2 requires a rare name before the base, so the base is
+    repeated as a technical name without adding a Mobalytics label.
     """
     unique = item.get('unique_name')
     if isinstance(unique, str) and unique.strip():
@@ -250,7 +250,7 @@ def suggestion_item_text(item, catalog):
         return None
     modifiers = [match.group(1) for line in lines[1:]
                  if (match := re.fullmatch(r'\d+\.\s+(.+)', line))]
-    result = ['Rarity: RARE', 'Mobalytics Suggestion', lines[0], '--------', 'Item Level: 1']
+    result = ['Rarity: RARE', lines[0], lines[0], '--------', 'Item Level: 1']
     if modifiers:
         result.extend(['--------', *modifiers])
     return '\n'.join(result) + '\n'
