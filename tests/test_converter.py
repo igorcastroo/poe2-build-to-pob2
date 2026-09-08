@@ -77,7 +77,10 @@ class ConverterTests(unittest.TestCase):
         self.assertEqual(root.find('Tree/Spec/Notes/Note').text, 'hello\nworld')
         gems = root.findall('Skills/SkillSet/Skill/Gem')
         self.assertEqual(len(gems), 2)
-        self.assertIsNone(gems[0].get('level'))
+        self.assertEqual(gems[0].get('level'), '1')
+        self.assertEqual(gems[0].get('quality'), '0')
+        self.assertEqual(gems[0].get('qualityId'), 'Default')
+        self.assertEqual(gems[1].get('level'), '1')
         self.assertEqual(gems[0].get('note'), 'gem note')
 
     def test_inventory_hints_and_raw(self):

@@ -384,16 +384,22 @@ def convert(paths, catalog_path=DEFAULT_CATALOG, map_path=None, tree_version=Non
                     continue
                 if group is None:
                     group = ET.SubElement(skillset, 'Skill', enabled='true', mainActiveSkill='1', label=known['nameSpec'])
-                attrs = dict(known, gemId=gem['id'], enabled='true')
+                attrs = dict(known, gemId=gem['id'], enabled='true', qualityId='Default')
                 if gem.get('additional_text'):
                     attrs['note'] = str(gem['additional_text'])
                 # .build's level_interval is character availability, NOT gem level.
-                for field, low, high in (('level', 1, 40), ('quality', 0, 100)):
+                # PoB2 requires numeric level and quality attributes even for supports.
+                # Mobalytics does not export them, so use minimum technical values.
+                for field, low, high, default in (('level', 1, 40, 1), ('quality', 0, 100, 0)):
                     if field in gem:
                         val = gem[field]
                         if type(val) is not int or not low <= val <= high:
                             raise ConversionError(f'{stage_title}: {field} inválido em {gem["id"]}', report)
-                        attrs[field] = str(val)
+                    else:
+                        val = default
+                        if j == 0 and field == 'level':
+                            stage['warnings'].append(f'{known["nameSpec"]}: nível não fornecido; definido como 1 para o XML do PoB2')
+                    attrs[field] = str(val)
                 ET.SubElement(group, 'Gem', attrs)
         itemset = ET.SubElement(items, 'ItemSet', id=str(index), title=stage_title, useSecondWeaponSet='false')
         slot_entries = {}

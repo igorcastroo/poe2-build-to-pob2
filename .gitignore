@@ -35,3 +35,5 @@ dist/
 # Temporary alternate PyInstaller paths
 .build_config/
 .dist_config/
+.build_*/
+.dist_*/
