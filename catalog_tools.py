@@ -39,6 +39,21 @@ def extract(source, version):
         flask_slot = slots.get(f'Flask1:{index + 2}')
         if flask_slot:
             slots.setdefault(f'Charm1:{index}', flask_slot)
+    item_bases = set()
+    for path in (source / 'Data' / 'Bases').glob('*.lua'):
+        item_bases.update(re.findall(r'itemBases\["([^"\\n]+)"\]', path.read_text(encoding='utf-8')))
+    unique_bases, ambiguous_unique_bases = {}, set()
+    for path in (source / 'Data' / 'Uniques').glob('*.lua'):
+        text = path.read_text(encoding='utf-8')
+        for name, base in re.findall(r'\[\[\r?\n([^\r\n]+)\r?\n([^\r\n]+)', text):
+            if base not in item_bases:
+                continue
+            if name in unique_bases and unique_bases[name] != base:
+                ambiguous_unique_bases.add(name)
+                continue
+            unique_bases[name] = base
+    for name in ambiguous_unique_bases:
+        unique_bases.pop(name, None)
     quest_rewards = []
     quest_lua = (source / 'Data/QuestRewards.lua').read_text(encoding='utf-8')
     for block in re.findall(r'\n\t\{\n(.*?)\n\t\},', quest_lua, re.S):
@@ -58,11 +73,12 @@ def extract(source, version):
     classes = [{ 'name': c['name'], 'integerId': c['integerId'],
                  'ascendancies': [{ 'name': a['name'], 'internalId': a['internalId']} for a in c['ascendancies']]}
                for c in tree['classes']]
-    if not nodes or not gems or not slots or not classes:
+    if not nodes or not gems or not slots or not classes or not item_bases:
         raise ValueError('Catalog extraction produced an empty section')
     return {'tree_version': version, 'source': 'PathOfBuildingCommunity/PathOfBuilding-PoE2',
             'passives': nodes, 'gems': gems, 'slots': slots, 'classes': classes,
-            'quest_rewards': quest_rewards}
+            'quest_rewards': quest_rewards, 'item_bases': sorted(item_bases),
+            'unique_bases': unique_bases}
 
 
 if __name__ == '__main__':

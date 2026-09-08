@@ -91,12 +91,26 @@ class ConverterTests(unittest.TestCase):
             {'inventory_id': 'Flask1', 'slot_x': 1, 'additional_text': 'mana'}]))
         xml, code, report = convert([path])
         root = validate_roundtrip(xml, code)
-        self.assertEqual(len(root.findall('Items/Item')), 1)
+        self.assertEqual(len(root.findall('Items/Item')), 2)
         self.assertEqual(root.find('Items/Item').text, raw)
         slots = {s.get('name'): s for s in root.findall('Items/ItemSet/Slot')}
-        self.assertEqual(slots['Ring 1'].get('itemId'), '0')
+        self.assertNotEqual(slots['Ring 1'].get('itemId'), '0')
         self.assertEqual(slots['Flask 2'].get('note'), 'mana')
-        self.assertEqual(len(report['stages'][0]['warnings']), 2)
+        self.assertEqual(len(report['stages'][0]['warnings']), 1)
+
+    def test_mobalytics_item_suggestions_create_editable_items(self):
+        path = self.file('Act 1', self.build(inventory_slots=[
+            {'inventory_id': 'Amulet1', 'additional_text': 'Gold Amulet\n1. +9% to all Elemental Resistances'},
+            {'inventory_id': 'BodyArmour1', 'unique_name': 'Forgotten Warden'},
+        ]))
+        xml, code, _ = convert([path])
+        root = validate_roundtrip(xml, code)
+        items = root.findall('Items/Item')
+        self.assertEqual(len(items), 2)
+        self.assertIn('Rarity: NORMAL\nGold Amulet', items[0].text)
+        self.assertIn('+9% to all Elemental Resistances', items[0].text)
+        self.assertEqual(items[1].text, 'Rarity: UNIQUE\nForgotten Warden\nPrimal Markings\n')
+        self.assertTrue(all(slot.get('itemId') != '0' for slot in root.findall('Items/ItemSet/Slot')))
 
     def test_map_formats_and_conflicts(self):
         self.assertEqual(passive_map([{'Id': 'a', 'PassiveSkillsHash': 12}]), {'a': 12})

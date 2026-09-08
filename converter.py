@@ -225,6 +225,36 @@ def resolve_class(data, catalog, fallback):
     raise ValueError(f'Classe/ascendência não identificada ({class_name!r}, {asc!r}); informe --class')
 
 
+def suggestion_item_text(item, catalog):
+    """Render Mobalytics equipment guidance as a safe, editable PoB2 item.
+
+    A Build Planner export supplies a base/unique name and numbered modifier
+    lines, rather than a complete PoB item copy. We only construct an item
+    when its base is in the bundled PoB2 catalog. Every modifier is copied
+    from the export; the NORMAL rarity and item level are parser scaffolding.
+    """
+    unique = item.get('unique_name')
+    if isinstance(unique, str) and unique.strip():
+        unique = unique.strip()
+        base = next((value for name, value in catalog.get('unique_bases', {}).items()
+                     if name.casefold() == unique.casefold()), None)
+        if base:
+            return f'Rarity: UNIQUE\n{unique}\n{base}\n'
+        return None
+    text = item.get('additional_text')
+    if not isinstance(text, str):
+        return None
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if not lines or lines[0] not in set(catalog.get('item_bases', ())):
+        return None
+    modifiers = [match.group(1) for line in lines[1:]
+                 if (match := re.fullmatch(r'\d+\.\s+(.+)', line))]
+    result = ['Rarity: NORMAL', lines[0], '--------', 'Item Level: 1']
+    if modifiers:
+        result.extend(['--------', *modifiers])
+    return '\n'.join(result) + '\n'
+
+
 def encode(xml):
     return base64.urlsafe_b64encode(zlib.compress(xml, 9)).decode('ascii')
 
@@ -420,7 +450,7 @@ def convert(paths, catalog_path=DEFAULT_CATALOG, map_path=None, tree_version=Non
                 continue
             slot_el = ET.SubElement(itemset, 'Slot', name=slot, itemId='0', note=hint)
             slot_entries[slot] = slot_el
-            raw_text = item.get('raw_text')
+            raw_text = item.get('raw_text') or suggestion_item_text(item, catalog)
             if raw_text:
                 if not isinstance(raw_text, str) or not re.match(r'^Rarity: (NORMAL|MAGIC|RARE|UNIQUE)\r?\n', raw_text, re.I):
                     raise ConversionError(f'{stage_title}: raw_text precisa ser texto de item PoB com Rarity', report)
