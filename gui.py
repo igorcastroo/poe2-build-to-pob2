@@ -46,6 +46,9 @@ TEXT = {
     },
 }
 
+TEXT['pt-BR']['advanced'] = 'Avançado'
+TEXT['en-US']['advanced'] = 'Advanced'
+
 
 class App:
     def __init__(self, root):
@@ -55,7 +58,10 @@ class App:
         self.import_temp = tempfile.TemporaryDirectory(prefix='poe2-build-to-pob2-')
         self.locale = tk.StringVar(value='pt-BR')
         self.catalog = tk.StringVar(value=str(DEFAULT_CATALOG))
-        self.mapping, self.cls, self.partial = tk.StringVar(), tk.StringVar(), tk.BooleanVar()
+        self.mapping, self.cls = tk.StringVar(), tk.StringVar()
+        # Normal imports finish even when a guide contains a newer ID; every
+        # omitted value remains listed in the generated report.
+        self.partial = tk.BooleanVar(value=True)
         self.guide_url = tk.StringVar()
         self.classes = [c['name'] for c in json.loads(DEFAULT_CATALOG.read_text(encoding='utf-8'))['classes']]
         self.build()
@@ -83,14 +89,16 @@ class App:
         ttk.Entry(guide, textvariable=self.guide_url).grid(row=0, column=1, sticky='ew')
         ttk.Button(guide, text=self.t['import_url'], command=self.import_url).grid(row=0, column=2, padx=(8, 0))
         self.listbox = tk.Listbox(frame, height=10, exportselection=False); self.listbox.pack(fill='both', expand=True, pady=10)
-        options = ttk.Frame(frame); options.pack(fill='x'); options.columnconfigure(1, weight=1)
+        advanced_tabs = ttk.Notebook(frame); advanced_tabs.pack(fill='x', pady=(0, 8))
+        options = ttk.Frame(advanced_tabs, padding=8); options.columnconfigure(1, weight=1)
+        advanced_tabs.add(options, text=self.t['advanced'])
         for row, label, variable in [(0, self.t['mapping'], self.mapping)]:
             ttk.Label(options, text=label).grid(row=row, column=0, sticky='w', padx=(0, 12), pady=4)
             ttk.Entry(options, textvariable=variable).grid(row=row, column=1, sticky='ew')
             ttk.Button(options, text=self.t['choose'], command=lambda v=variable: self.select_json(v)).grid(row=row, column=2, padx=(8, 0))
         ttk.Label(options, text=self.t['class']).grid(row=1, column=0, sticky='w', pady=4)
         ttk.Combobox(options, textvariable=self.cls, values=[''] + self.classes).grid(row=1, column=1, sticky='ew')
-        ttk.Checkbutton(frame, text=self.t['partial'], variable=self.partial).pack(anchor='w', pady=8)
+        ttk.Checkbutton(options, text=self.t['partial'], variable=self.partial).grid(row=2, column=0, columnspan=3, sticky='w', pady=(8, 0))
         bar = ttk.Frame(frame); bar.pack(fill='x')
         ttk.Button(bar, text=self.t['generate'], command=self.generate).pack(side='left')
         self.copy_button = ttk.Button(bar, text=self.t['copy'], command=self.copy, state='normal' if self.code else 'disabled'); self.copy_button.pack(side='left', padx=8)
