@@ -376,7 +376,10 @@ def convert(paths, catalog_path=DEFAULT_CATALOG, map_path=None, tree_version=Non
             'classId': str(cls['integerId']), 'classInternalId': str(cls['integerId']),
             'ascendClassId': str(asc_id), 'ascendancyInternalId': asc['internalId'],
             'secondaryAscendClassId': '0', 'masteryEffects': ''})
-        node_ids, weapons, node_notes = {}, {1: [], 2: []}, {}
+        # A Mobalytics export can include a passive once for the general tree
+        # and again for one or both weapon sets.  Those are complementary
+        # allocations in PoB2, not competing values for the same node.
+        node_ids, weapons, node_notes = set(), {1: set(), 2: set()}, {}
         for p in data.get('passives', []):
             p = entry(p)
             node = mapping.get(p['id'])
@@ -385,15 +388,12 @@ def convert(paths, catalog_path=DEFAULT_CATALOG, map_path=None, tree_version=Non
                 unresolved = True
                 continue
             mode = p.get('weapon_set', 0)
-            if node in node_ids and node_ids[node] != mode:
-                raise ConversionError(f'{stage_title}: alocações conflitantes para {node}', report)
-            node_ids[node] = mode
+            node_ids.add(node)
+            if mode:
+                weapons[mode].add(node)
             if p.get('additional_text'):
                 node_notes.setdefault(node, []).append(str(p['additional_text']))
         spec.set('nodes', ','.join(map(str, sorted(node_ids))))
-        for node, mode in node_ids.items():
-            if mode:
-                weapons[mode].append(node)
         for mode, ids in weapons.items():
             if ids:
                 ET.SubElement(spec, f'WeaponSet{mode}', nodes=','.join(map(str, sorted(ids))))

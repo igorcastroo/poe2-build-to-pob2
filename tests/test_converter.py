@@ -83,6 +83,20 @@ class ConverterTests(unittest.TestCase):
         self.assertEqual(gems[1].get('level'), '1')
         self.assertEqual(gems[0].get('note'), 'gem note')
 
+    def test_passive_can_be_general_and_in_both_weapon_sets(self):
+        path = self.file('Act 1', {'ascendancy': 'Monk1', 'passives': [
+            {'id': self.passive},
+            {'id': self.passive, 'weapon_set': 1},
+            {'id': self.passive, 'weapon_set': 2},
+        ]})
+        xml, code, _ = convert([path])
+        root = validate_roundtrip(xml, code)
+        node = str(self.catalog['passives'][self.passive])
+        spec = root.find('Tree/Spec')
+        self.assertEqual(spec.get('nodes'), node)
+        self.assertEqual(spec.find('WeaponSet1').get('nodes'), node)
+        self.assertEqual(spec.find('WeaponSet2').get('nodes'), node)
+
     def test_inventory_hints_and_raw(self):
         raw = 'Rarity: NORMAL\nQuarterstaff\n'
         path = self.file('Act 1', self.build(inventory_slots=[
