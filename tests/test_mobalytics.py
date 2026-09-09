@@ -2,7 +2,7 @@ import unittest
 
 from converter import encode
 from mobalytics import (MobalyticsImportError, _document_id, _guide_quest_rewards,
-                        _pob2_code, _preloaded_state, _variant_ids, _variant_names, validate_guide_url)
+                        _active_variant_id, _pob2_code, _preloaded_state, _variant_ids, _variant_names, validate_guide_url)
 
 
 class MobalyticsTests(unittest.TestCase):
@@ -36,6 +36,11 @@ class MobalyticsTests(unittest.TestCase):
     def test_variant_names_come_from_tabs(self):
         html = '<div data-key="act-1"><span>Act 1</span></div>'
         self.assertEqual(_variant_names(html, {'act-1'}), {'act-1': 'Act 1'})
+
+    def test_active_variant_id_comes_from_mobalytics_query_value(self):
+        identifier = '1cf48bc7-7deb-494a-ba1d-814fda0b75f4'
+        url = 'https://mobalytics.gg/poe-2/builds/example?socket=activeVariantId%2C' + identifier
+        self.assertEqual(_active_variant_id(url), identifier)
 
     def test_quest_rewards_keep_only_explicit_valid_choices(self):
         state = {'questRewards': {'quests': [

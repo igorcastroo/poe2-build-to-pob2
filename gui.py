@@ -54,7 +54,7 @@ class App:
     def __init__(self, root):
         self.root = root
         root.geometry('850x670'); root.minsize(700, 560)
-        self.files, self.code, self.direct_build = [], None, None
+        self.files, self.code, self.direct_build, self.active_file = [], None, None, None
         self.import_temp = tempfile.TemporaryDirectory(prefix='poe2-build-to-pob2-')
         self.locale = tk.StringVar(value='pt-BR')
         self.catalog = tk.StringVar(value=str(DEFAULT_CATALOG))
@@ -120,6 +120,7 @@ class App:
         paths = filedialog.askopenfilenames(filetypes=[(self.t['build_files'], '*.build'), (self.t['all_files'], '*.*')])
         if paths:
             self.direct_build = None
+            self.active_file = None
             self.files.extend(path for path in paths if path not in self.files); self.sort()
 
     def import_url(self):
@@ -140,10 +141,11 @@ class App:
                 return
             self.direct_build = None
             self.files.extend(str(path) for path in result.files if str(path) not in self.files)
+            self.active_file = str(result.active_file) if result.active_file else None
             self.sort()
             generated = convert(self.files, catalog_path=self.catalog.get(), map_path=self.mapping.get() or None,
                                 class_name=self.cls.get() or None, manual_order=True,
-                                allow_partial=self.partial.get())
+                                allow_partial=self.partial.get(), active_path=self.active_file)
             message = self.t['imported'].format(stages=len(result.files), guide=result.guide_name,
                                                 rewards=result.quest_rewards)
             if result.rejected:
@@ -156,7 +158,10 @@ class App:
 
     def remove(self):
         self.direct_build = None
-        for i in reversed(self.listbox.curselection()): self.files.pop(i)
+        for i in reversed(self.listbox.curselection()):
+            removed = self.files.pop(i)
+            if removed == self.active_file:
+                self.active_file = None
         self.refresh()
 
     def move(self, direction):
@@ -176,7 +181,7 @@ class App:
         self.code = None; self.copy_button.configure(state='disabled')
         guide_url_before = self.guide_url.get()
         try:
-            result = self.direct_build or convert(self.files, catalog_path=self.catalog.get(), map_path=self.mapping.get() or None, class_name=self.cls.get() or None, manual_order=True, allow_partial=self.partial.get())
+            result = self.direct_build or convert(self.files, catalog_path=self.catalog.get(), map_path=self.mapping.get() or None, class_name=self.cls.get() or None, manual_order=True, allow_partial=self.partial.get(), active_path=self.active_file)
             destination = filedialog.asksaveasfilename(title=self.t['save_title'], defaultextension='.xml', initialfile=self.t['save_name'], filetypes=[('PoB2 XML', '*.xml')])
             if not destination: return
             paths = write_outputs(str(Path(destination).with_suffix('')), *result, overwrite=True)

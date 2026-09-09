@@ -7,7 +7,7 @@ import json
 import re
 import zlib
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qsl, urlparse
 import xml.etree.ElementTree as ET
 
 from curl_cffi import requests
@@ -40,6 +40,7 @@ class ImportResult:
     rejected: list[str]
     quest_rewards: int
     pob_code: str | None = None
+    active_file: Path | None = None
 
 
 def validate_guide_url(value: str) -> str:
@@ -167,6 +168,15 @@ def _variant_names(html: str, ids: set[str]) -> dict[str, str]:
     return names
 
 
+def _active_variant_id(url: str) -> str | None:
+    """Read Mobalytics' public activeVariantId query value, when supplied."""
+    for _, value in parse_qsl(urlparse(url).query, keep_blank_values=True):
+        match = re.search(r'(?:^|,)activeVariantId,([0-9a-f-]{36})(?:,|$)', value, re.I)
+        if match and DOCUMENT_ID.fullmatch(match.group(1)):
+            return match.group(1)
+    return None
+
+
 def _guide_quest_rewards(state) -> list[dict]:
     """Keep the guide's explicit reward choices as local .build metadata."""
     for value in _walk(state):
@@ -242,11 +252,12 @@ def import_guide(url: str, destination: str | Path) -> ImportResult:
     if code:
         return ImportResult(_guide_name(state, response.text), [], [], 0, code)
     document_id, variant_ids = _document_id(state), _variant_ids(state)
+    active_variant_id = _active_variant_id(url)
     variant_names = _variant_names(response.text, set(variant_ids))
     quest_rewards = _guide_quest_rewards(state)
     destination = Path(destination)
     destination.mkdir(parents=True, exist_ok=True)
-    files, rejected, used_names = [], [], set()
+    files, rejected, used_names, active_file = [], [], set(), None
     for variant_id in variant_ids:
         try:
             data, text = _export_variant(session, url, document_id, variant_id)
@@ -266,9 +277,11 @@ def import_guide(url: str, destination: str | Path) -> ImportResult:
             path = destination / f"{candidate}.build"
             path.write_text(text, encoding="utf-8", newline="\n")
             files.append(path)
+            if variant_id == active_variant_id:
+                active_file = path
         except (OSError, MobalyticsImportError) as exc:
             rejected.append(f"Variant {variant_id}: {exc}")
     if not files:
         detail = "; ".join(rejected) or "no variants returned"
         raise MobalyticsImportError(f"No valid .build files were imported: {detail}")
-    return ImportResult(_guide_name(state, response.text), files, rejected, len(quest_rewards))
+    return ImportResult(_guide_name(state, response.text), files, rejected, len(quest_rewards), active_file=active_file)

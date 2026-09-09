@@ -45,6 +45,14 @@ class ConverterTests(unittest.TestCase):
         _, _, report = convert([a, b, a], manual_order=True)
         self.assertEqual([s['title'] for s in report['stages']], ['Act 2', 'Act 1'])
 
+    def test_active_path_selects_matching_stage_sets(self):
+        act_1, act_2 = [self.file(name, self.build()) for name in ('Act 1', 'Act 2')]
+        xml, code, _ = convert([act_1, act_2], active_path=act_2)
+        root = validate_roundtrip(xml, code, 2)
+        self.assertEqual(root.find('Tree').get('activeSpec'), '2')
+        self.assertEqual(root.find('Skills').get('activeSkillSet'), '2')
+        self.assertEqual(root.find('Items').get('activeItemSet'), '2')
+
     def test_empty_corrupt_and_bad_schema(self):
         good = self.file('Act 1', self.build())
         empty = self.file('Empty', {})

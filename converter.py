@@ -305,7 +305,7 @@ def validate_roundtrip(xml, code, expected_stages=None):
 
 
 def convert(paths, catalog_path=DEFAULT_CATALOG, map_path=None, tree_version=None,
-            class_name=None, manual_order=False, allow_partial=False, title='Merged build'):
+            class_name=None, manual_order=False, allow_partial=False, title='Merged build', active_path=None):
     catalog = read_json(catalog_path)
     version = tree_version or catalog['tree_version']
     if version != catalog['tree_version']:
@@ -357,12 +357,16 @@ def convert(paths, catalog_path=DEFAULT_CATALOG, map_path=None, tree_version=Non
     tree = ET.SubElement(root, 'Tree', activeSpec='1')
     skills = ET.SubElement(root, 'Skills', activeSkillSet='1')
     items = ET.SubElement(root, 'Items', activeItemSet='1', useSecondWeaponSet='false')
+    active_path = Path(active_path).resolve() if active_path else None
+    active_index = 1
     notes = [title, 'Converted from .build files. Missing levels/quality remain unspecified; PoB applies its defaults.',
              'Inventory hints are notes, not rolled equipment. Original stage JSON follows for lossless reference.']
     titles = set()
     item_counter = 0
     unresolved = False
     for index, ((path, data), (cls, asc_id, asc)) in enumerate(zip(stages, resolved), 1):
+        if active_path and path == active_path:
+            active_index = index
         stage_title = path.stem
         suffix = 1
         while stage_title in titles:
@@ -462,6 +466,9 @@ def convert(paths, catalog_path=DEFAULT_CATALOG, map_path=None, tree_version=Non
                 stage['warnings'].append(f'{slot}: apenas sugestão; atributos não disponíveis')
         stage['mapped_passives'] = len(node_ids)
         notes.extend(['', f'=== {stage_title} ===', json.dumps(data, ensure_ascii=False, indent=2)])
+    tree.set('activeSpec', str(active_index))
+    skills.set('activeSkillSet', str(active_index))
+    items.set('activeItemSet', str(active_index))
     if report['skipped']:
         notes.extend(['', '=== Ignored files ===', json.dumps(report['skipped'], ensure_ascii=False, indent=2)])
     if unresolved:
