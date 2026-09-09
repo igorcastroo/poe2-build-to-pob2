@@ -55,6 +55,7 @@ class App:
         self.root = root
         root.geometry('850x670'); root.minsize(700, 560)
         self.files, self.code, self.direct_build, self.active_file = [], None, None, None
+        self.mobalytics_import = False
         self.import_temp = tempfile.TemporaryDirectory(prefix='poe2-build-to-pob2-')
         self.locale = tk.StringVar(value='pt-BR')
         self.catalog = tk.StringVar(value=str(DEFAULT_CATALOG))
@@ -121,6 +122,7 @@ class App:
         if paths:
             self.direct_build = None
             self.active_file = None
+            self.mobalytics_import = False
             self.files.extend(path for path in paths if path not in self.files); self.sort()
 
     def import_url(self):
@@ -133,6 +135,7 @@ class App:
             if result.pob_code:
                 xml = decode_pob2_code(result.pob_code)
                 self.files.clear(); self.refresh()
+                self.mobalytics_import = False
                 self.direct_build = (xml, result.pob_code, {
                     'source': {'provider': 'Mobalytics', 'guide_url': url, 'mode': 'direct_pob2_code'},
                     'roundtrip_ok': True, 'stages': [],
@@ -140,12 +143,14 @@ class App:
                 self.show_import_code(result.pob_code, self.t['direct_pob'].format(guide=result.guide_name))
                 return
             self.direct_build = None
+            self.mobalytics_import = True
             self.files.extend(str(path) for path in result.files if str(path) not in self.files)
             self.active_file = str(result.active_file) if result.active_file else None
             self.sort()
             generated = convert(self.files, catalog_path=self.catalog.get(), map_path=self.mapping.get() or None,
                                 class_name=self.cls.get() or None, manual_order=True,
-                                allow_partial=self.partial.get(), active_path=self.active_file)
+                                allow_partial=self.partial.get(), active_path=self.active_file,
+                                flatten_weapon_sets=self.mobalytics_import)
             message = self.t['imported'].format(stages=len(result.files), guide=result.guide_name,
                                                 rewards=result.quest_rewards)
             if result.rejected:
@@ -181,7 +186,7 @@ class App:
         self.code = None; self.copy_button.configure(state='disabled')
         guide_url_before = self.guide_url.get()
         try:
-            result = self.direct_build or convert(self.files, catalog_path=self.catalog.get(), map_path=self.mapping.get() or None, class_name=self.cls.get() or None, manual_order=True, allow_partial=self.partial.get(), active_path=self.active_file)
+            result = self.direct_build or convert(self.files, catalog_path=self.catalog.get(), map_path=self.mapping.get() or None, class_name=self.cls.get() or None, manual_order=True, allow_partial=self.partial.get(), active_path=self.active_file, flatten_weapon_sets=self.mobalytics_import)
             destination = filedialog.asksaveasfilename(title=self.t['save_title'], defaultextension='.xml', initialfile=self.t['save_name'], filetypes=[('PoB2 XML', '*.xml')])
             if not destination: return
             paths = write_outputs(str(Path(destination).with_suffix('')), *result, overwrite=True)

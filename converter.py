@@ -305,7 +305,8 @@ def validate_roundtrip(xml, code, expected_stages=None):
 
 
 def convert(paths, catalog_path=DEFAULT_CATALOG, map_path=None, tree_version=None,
-            class_name=None, manual_order=False, allow_partial=False, title='Merged build', active_path=None):
+            class_name=None, manual_order=False, allow_partial=False, title='Merged build', active_path=None,
+            flatten_weapon_sets=False):
     catalog = read_json(catalog_path)
     version = tree_version or catalog['tree_version']
     if version != catalog['tree_version']:
@@ -393,7 +394,7 @@ def convert(paths, catalog_path=DEFAULT_CATALOG, map_path=None, tree_version=Non
                 continue
             mode = p.get('weapon_set', 0)
             node_ids.add(node)
-            if mode:
+            if mode and not flatten_weapon_sets:
                 weapons[mode].add(node)
             if p.get('additional_text'):
                 node_notes.setdefault(node, []).append(str(p['additional_text']))
@@ -401,6 +402,8 @@ def convert(paths, catalog_path=DEFAULT_CATALOG, map_path=None, tree_version=Non
         for mode, ids in weapons.items():
             if ids:
                 ET.SubElement(spec, f'WeaponSet{mode}', nodes=','.join(map(str, sorted(ids))))
+        if flatten_weapon_sets and any(entry(p).get('weapon_set', 0) for p in data.get('passives', [])):
+            stage['warnings'].append('Weapon Set passives unified in the stage tree to match the Mobalytics guide view')
         if node_notes:
             n = ET.SubElement(spec, 'Notes')
             for node, texts in node_notes.items():

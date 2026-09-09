@@ -105,6 +105,19 @@ class ConverterTests(unittest.TestCase):
         self.assertEqual(spec.find('WeaponSet1').get('nodes'), node)
         self.assertEqual(spec.find('WeaponSet2').get('nodes'), node)
 
+    def test_flatten_weapon_sets_keeps_all_nodes_in_the_main_tree(self):
+        other = next(key for key in self.catalog['passives'] if key != self.passive)
+        path = self.file('Act 1', {'ascendancy': 'Monk1', 'passives': [
+            {'id': self.passive}, {'id': other, 'weapon_set': 1},
+        ]})
+        xml, code, report = convert([path], flatten_weapon_sets=True)
+        root = validate_roundtrip(xml, code)
+        spec = root.find('Tree/Spec')
+        expected = sorted((self.catalog['passives'][self.passive], self.catalog['passives'][other]))
+        self.assertEqual(spec.get('nodes'), ','.join(map(str, expected)))
+        self.assertIsNone(spec.find('WeaponSet1'))
+        self.assertTrue(report['stages'][0]['warnings'])
+
     def test_inventory_hints_and_raw(self):
         raw = 'Rarity: NORMAL\nQuarterstaff\n'
         path = self.file('Act 1', self.build(inventory_slots=[
