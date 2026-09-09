@@ -5,7 +5,7 @@ import tempfile
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from converter import DEFAULT_CATALOG, ConversionError, convert, write_outputs, stage_key
-from mobalytics import MobalyticsImportError, import_guide
+from mobalytics import MobalyticsImportError, decode_pob2_code, import_guide
 
 TEXT = {
     'pt-BR': {
@@ -16,6 +16,8 @@ TEXT = {
         'url_needed': 'Cole um link público do guia Mobalytics.', 'import_error': 'Não foi possível importar o guia',
         'imported': '{stages} estágios importados de:\n{guide}\nArquivos temporários válidos foram adicionados à lista.\n{rewards} escolha(s) de recompensa foram registradas; as compatíveis serão ativadas em Config → Quest Rewards ao gerar.',
         'import_rejected': '\n\n{count} variante(s) rejeitada(s):\n{details}',
+        'direct_pob': '{guide} já possui um código PoB2 válido. Ele foi usado diretamente; nenhum .build foi baixado ou convertido.',
+        'direct_saved': 'Código PoB2 original salvo sem conversão.\n{paths}',
         'mapping': 'Mapa alternativo (opcional)', 'class': 'Classe (se não identificada)', 'choose': 'Selecionar',
         'partial': 'Permitir conversão parcial: omitir IDs desconhecidos e registrar no relatório', 'generate': 'Gerar PoB2…', 'copy': 'Copiar código',
         'welcome': 'Importe guias Mobalytics ou arquivos .build. Cada estágio gera árvore, skills e itens editáveis quando a base é confirmada.\nO catálogo incluído corresponde à árvore 0_5.',
@@ -31,6 +33,8 @@ TEXT = {
         'url_needed': 'Paste a public Mobalytics guide URL.', 'import_error': 'Could not import guide',
         'imported': '{stages} stages imported from:\n{guide}\nValidated temporary files were added to the list.\n{rewards} quest reward choice(s) were recorded; compatible choices will be enabled in Config → Quest Rewards when you create the PoB2.',
         'import_rejected': '\n\n{count} rejected variant(s):\n{details}',
+        'direct_pob': '{guide} already has a valid PoB2 code. It was used directly; no .build files were downloaded or converted.',
+        'direct_saved': 'Original PoB2 code saved without conversion.\n{paths}',
         'add': 'Add files', 'remove': 'Remove', 'up': '↑ Move up', 'down': '↓ Move down', 'sort': 'Sort stages',
         'mapping': 'Alternate map (optional)', 'class': 'Class (when not detected)', 'choose': 'Browse',
         'partial': 'Allow partial conversion: omit unknown IDs and record them in the report', 'generate': 'Create PoB2…', 'copy': 'Copy code',
@@ -47,7 +51,7 @@ class App:
     def __init__(self, root):
         self.root = root
         root.geometry('850x670'); root.minsize(700, 560)
-        self.files, self.code = [], None
+        self.files, self.code, self.direct_build = [], None, None
         self.import_temp = tempfile.TemporaryDirectory(prefix='poe2-build-to-pob2-')
         self.locale = tk.StringVar(value='pt-BR')
         self.catalog = tk.StringVar(value=str(DEFAULT_CATALOG))
@@ -106,7 +110,9 @@ class App:
 
     def add(self):
         paths = filedialog.askopenfilenames(filetypes=[(self.t['build_files'], '*.build'), (self.t['all_files'], '*.*')])
-        self.files.extend(path for path in paths if path not in self.files); self.sort()
+        if paths:
+            self.direct_build = None
+            self.files.extend(path for path in paths if path not in self.files); self.sort()
 
     def import_url(self):
         url = self.guide_url.get().strip()
@@ -115,6 +121,16 @@ class App:
         self.root.configure(cursor='watch'); self.root.update_idletasks()
         try:
             result = import_guide(url, self.import_temp.name)
+            if result.pob_code:
+                xml = decode_pob2_code(result.pob_code)
+                self.files.clear(); self.refresh()
+                self.direct_build = (xml, result.pob_code, {
+                    'source': {'provider': 'Mobalytics', 'guide_url': url, 'mode': 'direct_pob2_code'},
+                    'roundtrip_ok': True, 'stages': [],
+                })
+                self.show_import_code(result.pob_code, self.t['direct_pob'].format(guide=result.guide_name))
+                return
+            self.direct_build = None
             self.files.extend(str(path) for path in result.files if str(path) not in self.files)
             self.sort()
             generated = convert(self.files, catalog_path=self.catalog.get(), map_path=self.mapping.get() or None,
@@ -131,6 +147,7 @@ class App:
             self.root.configure(cursor='')
 
     def remove(self):
+        self.direct_build = None
         for i in reversed(self.listbox.curselection()): self.files.pop(i)
         self.refresh()
 
@@ -146,15 +163,19 @@ class App:
         if path: variable.set(path)
 
     def generate(self):
-        if not self.files:
+        if not self.files and not self.direct_build:
             messagebox.showinfo(self.t['files_title'], self.t['files_needed']); return
         self.code = None; self.copy_button.configure(state='disabled')
         guide_url_before = self.guide_url.get()
         try:
-            result = convert(self.files, catalog_path=self.catalog.get(), map_path=self.mapping.get() or None, class_name=self.cls.get() or None, manual_order=True, allow_partial=self.partial.get())
+            result = self.direct_build or convert(self.files, catalog_path=self.catalog.get(), map_path=self.mapping.get() or None, class_name=self.cls.get() or None, manual_order=True, allow_partial=self.partial.get())
             destination = filedialog.asksaveasfilename(title=self.t['save_title'], defaultextension='.xml', initialfile=self.t['save_name'], filetypes=[('PoB2 XML', '*.xml')])
             if not destination: return
             paths = write_outputs(str(Path(destination).with_suffix('')), *result, overwrite=True)
+            if self.direct_build:
+                self.guide_url.set(guide_url_before)
+                self.show_import_code(result[1], self.t['direct_saved'].format(paths='\n'.join(str(p) for p in paths)))
+                return
             report = result[2]
             self.guide_url.set(guide_url_before)
             message = self.t['built'].format(stages=len(report['stages']), skipped=len(report['skipped']), warnings=sum(len(s['warnings']) for s in report['stages']), partial=report['partial'], paths='\n'.join(str(p) for p in paths))

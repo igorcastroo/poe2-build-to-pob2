@@ -1,7 +1,8 @@
 import unittest
 
+from converter import encode
 from mobalytics import (MobalyticsImportError, _document_id, _guide_quest_rewards,
-                        _preloaded_state, _variant_ids, _variant_names, validate_guide_url)
+                        _pob2_code, _preloaded_state, _variant_ids, _variant_names, validate_guide_url)
 
 
 class MobalyticsTests(unittest.TestCase):
@@ -48,6 +49,14 @@ class MobalyticsTests(unittest.TestCase):
             'reward': {'slug': 'reward', 'name': 'Beira', 'bakedDescription': '+10% to Cold Resistance',
                        'modifiers': ['+10% to Cold Resistance']},
         }])
+
+    def test_valid_embedded_pob2_code_is_detected_before_build_export(self):
+        # Published codes use valid PoB2 XML but need not follow the converter's
+        # stricter stage/set structure.
+        xml = b'<PathOfBuilding2><Build className="Mercenary"/></PathOfBuilding2>'
+        code = encode(xml)
+        self.assertEqual(_pob2_code({'pobCode': code}, '<article>ignored</article>'), code)
+        self.assertIsNone(_pob2_code({'pobCode': 'not-a-code'}, '<article>not-a-code</article>'))
 
 
 if __name__ == '__main__':

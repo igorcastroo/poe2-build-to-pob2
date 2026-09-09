@@ -9,7 +9,7 @@
 ## What it does
 
 - Imports multiple local `.build` files and orders campaign, interlude, endgame, high-investment, and mirror stages.
-- Imports every public **Mobalytics Build Planner Export** variant from one guide URL. The import code is generated and copied automatically.
+- Uses an embedded, valid **PoB2 code** from a guide directly when one is published; otherwise imports every public **Mobalytics Build Planner Export** variant. The final code is copied automatically.
 - Converts GGG passive IDs to PoB2 numeric hashes with the bundled 0_5 catalog or a validated alternate map.
 - Preserves active gems, support gems, stage notes, weapon sets, and matching quest-reward selections.
 - Creates editable PoB2 equipment suggestions from Mobalytics bases, named uniques, and supplied modifier lines when the official PoB2 catalog can confirm the item base.
@@ -24,7 +24,7 @@ Open `Build2PoB2.exe`. It is the ready-to-run Windows version and includes Pytho
 
 - Local `.build` conversion works offline.
 - A Mobalytics guide URL needs internet access only while its public variants are downloaded.
-- **Import guide** imports, converts, shows, and copies the PoB2 code in one action.
+- **Import guide** uses a published PoB2 code directly when available; otherwise it imports, converts, shows, and copies the PoB2 code in one action.
 - **Create PoB2** additionally saves XML, code, and report to the location you choose; an existing selected output is replaced.
 - The app starts in Portuguese (Brazil). Use the flags at the top to change the visible interface to English (US).
 
@@ -52,7 +52,7 @@ End users should download `Build2PoB2.exe` from the latest release.
 
 ## Mobalytics guide URL import
 
-Paste a public PoE2 guide URL in the GUI and select **Import guide**. The app opens that page and calls Mobalytics' own public **Build Planner Export** endpoint for each variant, then validates every returned `.build` before adding it to the list. No login, cookies, credentials, or Mobalytics account data are read or sent by the application.
+Paste a public PoE2 guide URL in the GUI and select **Import guide**. The app first looks for an embedded PoB2 code. If it decompresses and validates as `PathOfBuilding2`, that original code is copied and can be saved without downloading or converting any `.build` file. Otherwise, the app calls Mobalytics' public **Build Planner Export** endpoint for each variant, then validates every returned `.build` before adding it to the list. No login, cookies, credentials, or Mobalytics account data are read or sent by the application.
 
 Only successfully validated files are added. A malformed, empty, unavailable, or oversized variant is shown as rejected and never becomes an invented stage. The downloaded files live in a temporary application folder and are deleted when the program closes; the resulting XML, code, and report are saved only where you choose.
 

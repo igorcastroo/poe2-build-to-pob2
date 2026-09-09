@@ -5,11 +5,13 @@ from dataclasses import dataclass
 from html import unescape
 import json
 import re
+import zlib
 from pathlib import Path
 from urllib.parse import urlparse
+import xml.etree.ElementTree as ET
 
 from curl_cffi import requests
-from converter import MAX_INPUT, validate_source
+from converter import MAX_INPUT, decode, validate_source
 
 MAX_PAGE = 8 * 1024 * 1024
 MOBALYTICS_HOSTS = {"mobalytics.gg", "www.mobalytics.gg"}
@@ -37,6 +39,7 @@ class ImportResult:
     files: list[Path]
     rejected: list[str]
     quest_rewards: int
+    pob_code: str | None = None
 
 
 def validate_guide_url(value: str) -> str:
@@ -87,6 +90,50 @@ def _walk(value):
     elif isinstance(value, list):
         for child in value:
             yield from _walk(child)
+
+
+def _pob2_code(state, html: str) -> str | None:
+    """Return an embedded, already-valid PoB2 import code when a guide has one."""
+    candidates = []
+    if state is not None:
+        for row in _walk(state):
+            if not isinstance(row, dict):
+                continue
+            for key, value in row.items():
+                key = str(key).casefold()
+                if isinstance(value, str) and ('pob' in key or 'pathofbuilding' in key):
+                    candidates.append(value)
+    # A guide author can place a code directly in article HTML rather than state.
+    candidates.extend(re.findall(r'(?<![A-Za-z0-9_+/=-])([A-Za-z0-9_+/=-]{40,})(?![A-Za-z0-9_+/=-])', unescape(html)))
+    for candidate in candidates:
+        code = ''.join(candidate.split())
+        if len(code) > MAX_INPUT * 2:
+            continue
+        try:
+            decode_pob2_code(code)
+        except (ValueError, OSError, zlib.error):
+            continue
+        return code
+    return None
+
+
+def decode_pob2_code(code: str) -> bytes:
+    """Decode a published code without imposing converter-specific set rules."""
+    xml = decode(code)
+    root = ET.fromstring(xml)
+    if root.tag != 'PathOfBuilding2':
+        raise ValueError('Embedded code is not a Path of Building 2 build')
+    return xml
+
+
+def _guide_name(state, html: str) -> str:
+    if state is not None:
+        name = next((value.get("name") for value in _walk(state)
+                     if isinstance(value.get("name"), str) and value.get("buildVariants")), None)
+        if name:
+            return name
+    title = re.search(r'<title>(.*?)</title>', html, re.I | re.S)
+    return unescape(re.sub(r'<[^>]*>', '', title.group(1))).strip() if title else "Mobalytics guide"
 
 
 def _document_id(state) -> str:
@@ -184,7 +231,16 @@ def import_guide(url: str, destination: str | Path) -> ImportResult:
         raise MobalyticsImportError(f"Mobalytics returned HTTP {response.status_code} while opening the guide")
     if len(response.content) > MAX_PAGE:
         raise MobalyticsImportError("Mobalytics guide page is too large")
-    state = _preloaded_state(response.text)
+    try:
+        state = _preloaded_state(response.text)
+    except MobalyticsImportError:
+        code = _pob2_code(None, response.text)
+        if not code:
+            raise
+        return ImportResult(_guide_name(None, response.text), [], [], 0, code)
+    code = _pob2_code(state, response.text)
+    if code:
+        return ImportResult(_guide_name(state, response.text), [], [], 0, code)
     document_id, variant_ids = _document_id(state), _variant_ids(state)
     variant_names = _variant_names(response.text, set(variant_ids))
     quest_rewards = _guide_quest_rewards(state)
@@ -215,6 +271,4 @@ def import_guide(url: str, destination: str | Path) -> ImportResult:
     if not files:
         detail = "; ".join(rejected) or "no variants returned"
         raise MobalyticsImportError(f"No valid .build files were imported: {detail}")
-    guide_name = next((value.get("name") for value in _walk(state)
-                       if isinstance(value.get("name"), str) and value.get("buildVariants")), "Mobalytics guide")
-    return ImportResult(guide_name, files, rejected, len(quest_rewards))
+    return ImportResult(_guide_name(state, response.text), files, rejected, len(quest_rewards))
