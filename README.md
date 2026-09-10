@@ -117,9 +117,18 @@ A clone of the official repository can be used as the source. The extractor **re
 - Mapped passives, weapon sets 1/2, and per-node notes.
 - Gems and supports matched by exact catalog IDs, including gem notes.
 - Description, author, link, notes, intervals, and additional fields from the original JSON in the Notes section and report.
-- Equipment guidance in inventory-slot notes, including unique names, and editable suggestion items when the PoB2 base is known.
+- Unique equipment resolved by exact catalog name; other equipment guidance in inventory-slot notes.
 
-An official `.build` often carries **equipment guidance**, rather than complete items. When a Mobalytics entry supplies an exact PoB2 base plus numbered modifier lines, the converter creates an editable rare suggestion item. The base and modifiers are copied from the export; PoB2 requires a rare-name line before the base, so the base is repeated there without inventing a separate item name. `Item Level: 1` is parser scaffolding rather than a claim about the item. A named unique is created only when its official base is in the bundled catalog, allowing PoB2 to load its unique data. Unknown bases and free-form advice remain in the slot note with `itemId=0`; no base, affix, roll, or value is guessed. For sources that provide actual PoB item text, an `inventory_slots` entry may use `raw_text` beginning with `Rarity: ...`. The text is copied literally and receives its own item reference. PoB2 remains responsible for parsing that item's base and modifiers.
+An official `.build` often carries **equipment guidance**, rather than complete items. Unique names
+that exactly match the bundled PoB2 catalog now create equipped items with their base and modifier text.
+The catalog contains 432 unambiguous unique templates from the same PoB2 commit as the other mappings.
+The `Current` variant is selected when available, and modifier ranges use midpoint rolls (`{range:0.5}`).
+These are catalog defaults, not the guide's actual rolls; this is recorded in the slot note and report.
+Unknown or ambiguous names remain notes with `itemId=0`. An exact known base plus numbered modifiers still creates an editable rare suggestion item. Its base is repeated as the required rare name, and `Item Level: 1` is parser scaffolding.
+For sources that provide actual PoB item text, an `inventory_slots` entry may use `raw_text` beginning
+with `Rarity: ...`. This text takes precedence over the catalog and is copied literally. PoB2 remains
+responsible for parsing the item's base and modifiers. Older custom catalogs without `uniques` keep
+unique names as notes; regenerate them with `catalog_tools.py` to include the unique templates.
 
 `level_interval` says when something is recommended for the character; it is **not a gem level**. When the input explicitly provides `level` and `quality`, they are preserved. PoB2 requires numeric XML fields even for support gems, so missing values use the minimum technical values `level=1` and `quality=0`; active gems with a missing level are flagged in the report for manual adjustment. The tool does not infer numbers from prose or equipment priorities.
 

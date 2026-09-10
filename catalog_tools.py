@@ -5,6 +5,30 @@ import re
 from pathlib import Path
 
 
+def extract_uniques(directory):
+    """Read literal PoB unique templates without executing Lua."""
+    uniques = {}
+    ambiguous = set()
+    for path in sorted(Path(directory).glob('*.lua')):
+        lua = path.read_text(encoding='utf-8')
+        lua = re.sub(r'--\[\[.*?\]\]', '', lua, flags=re.S)
+        lua = re.sub(r'--[^\n]*', '', lua)
+        for block in re.findall(r'\[\[(.*?)\]\]', lua, re.S):
+            lines = block.strip().splitlines()
+            if len(lines) < 2:
+                raise ValueError(f'Incomplete unique in {path.name}')
+            name = lines[0].strip()
+            raw = 'Rarity: UNIQUE\n' + '\n'.join(lines)
+            if name in ambiguous:
+                continue
+            if name in uniques and uniques[name] != raw:
+                del uniques[name]
+                ambiguous.add(name)
+                continue  # A name alone cannot select between different bases.
+            uniques[name] = raw
+    return uniques
+
+
 def extract(source, version):
     source = Path(source)
     if (source / 'src').is_dir():
@@ -78,7 +102,8 @@ def extract(source, version):
     return {'tree_version': version, 'source': 'PathOfBuildingCommunity/PathOfBuilding-PoE2',
             'passives': nodes, 'gems': gems, 'slots': slots, 'classes': classes,
             'quest_rewards': quest_rewards, 'item_bases': sorted(item_bases),
-            'unique_bases': unique_bases}
+            'unique_bases': unique_bases,
+            'uniques': extract_uniques(source / 'Data/Uniques')}
 
 
 if __name__ == '__main__':

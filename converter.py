@@ -236,12 +236,7 @@ def suggestion_item_text(item, catalog):
     """
     unique = item.get('unique_name')
     if isinstance(unique, str) and unique.strip():
-        unique = unique.strip()
-        base = next((value for name, value in catalog.get('unique_bases', {}).items()
-                     if name.casefold() == unique.casefold()), None)
-        if base:
-            return f'Rarity: UNIQUE\n{unique}\n{base}\n'
-        return None
+        return unique_item_text(unique.strip(), catalog)
     text = item.get('additional_text')
     if not isinstance(text, str):
         return None
@@ -302,6 +297,20 @@ def validate_roundtrip(xml, code, expected_stages=None):
             if slot.get('itemId') != '0' and slot.get('itemId') not in item_ids:
                 raise ValueError('Referência a item inexistente')
     return root
+
+
+def unique_item_text(name, catalog):
+    """Use PoB's exact-name template, with explicit midpoint rolls."""
+    raw = catalog.get('uniques', {}).get(name)
+    if not raw:
+        return None
+    lines = raw.splitlines()
+    variants = [line.removeprefix('Variant: ') for line in lines if line.startswith('Variant: ')]
+    if 'Current' in variants and not any(line.startswith('Selected Variant:') for line in lines):
+        lines.insert(3, f'Selected Variant: {variants.index("Current") + 1}')
+    return '\n'.join('{range:0.5}' + line
+                     if re.search(r'\(-?\d+(?:\.\d+)?--?\d+(?:\.\d+)?\)', line)
+                     and '{range:' not in line else line for line in lines)
 
 
 def convert(paths, catalog_path=DEFAULT_CATALOG, map_path=None, tree_version=None,
@@ -458,7 +467,14 @@ def convert(paths, catalog_path=DEFAULT_CATALOG, map_path=None, tree_version=Non
                 continue
             slot_el = ET.SubElement(itemset, 'Slot', name=slot, itemId='0', note=hint)
             slot_entries[slot] = slot_el
-            raw_text = item.get('raw_text') or suggestion_item_text(item, catalog)
+            raw_text = item.get('raw_text')
+            if not raw_text and isinstance(item.get('unique_name'), str):
+                raw_text = unique_item_text(item['unique_name'], catalog)
+                if raw_text:
+                    stage['warnings'].append(f'{slot}: {item["unique_name"]} do catálogo PoB; rolls médios, não informados pela build')
+                    slot_el.set('note', hint + '\nPoB catalog template; midpoint rolls, not supplied by the guide.')
+            if not raw_text:
+                raw_text = suggestion_item_text(item, catalog)
             if raw_text:
                 if not isinstance(raw_text, str) or not re.match(r'^Rarity: (NORMAL|MAGIC|RARE|UNIQUE)\r?\n', raw_text, re.I):
                     raise ConversionError(f'{stage_title}: raw_text precisa ser texto de item PoB com Rarity', report)

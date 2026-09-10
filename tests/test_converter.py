@@ -7,6 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from converter import (convert, ConversionError, decode, encode, passive_map,
                        stage_key, validate_roundtrip, write_outputs, DEFAULT_CATALOG)
+from catalog_tools import extract_uniques
 
 
 class ConverterTests(unittest.TestCase):
@@ -122,16 +123,16 @@ class ConverterTests(unittest.TestCase):
         raw = 'Rarity: NORMAL\nQuarterstaff\n'
         path = self.file('Act 1', self.build(inventory_slots=[
             {'inventory_id': 'Weapon1', 'raw_text': raw},
-            {'inventory_id': 'Ring1', 'unique_name': "Kalandra's Touch", 'additional_text': 'hint'},
+            {'inventory_id': 'Ring1', 'unique_name': 'Unknown Unique', 'additional_text': 'hint'},
             {'inventory_id': 'Flask1', 'slot_x': 1, 'additional_text': 'mana'}]))
         xml, code, report = convert([path])
         root = validate_roundtrip(xml, code)
-        self.assertEqual(len(root.findall('Items/Item')), 2)
+        self.assertEqual(len(root.findall('Items/Item')), 1)
         self.assertEqual(root.find('Items/Item').text, raw)
         slots = {s.get('name'): s for s in root.findall('Items/ItemSet/Slot')}
-        self.assertNotEqual(slots['Ring 1'].get('itemId'), '0')
+        self.assertEqual(slots['Ring 1'].get('itemId'), '0')
         self.assertEqual(slots['Flask 2'].get('note'), 'mana')
-        self.assertEqual(len(report['stages'][0]['warnings']), 1)
+        self.assertEqual(len(report['stages'][0]['warnings']), 2)
 
     def test_mobalytics_item_suggestions_create_editable_items(self):
         path = self.file('Act 1', self.build(inventory_slots=[
@@ -144,8 +145,47 @@ class ConverterTests(unittest.TestCase):
         self.assertEqual(len(items), 2)
         self.assertIn('Rarity: RARE\nGold Amulet\nGold Amulet', items[0].text)
         self.assertIn('+9% to all Elemental Resistances', items[0].text)
-        self.assertEqual(items[1].text, 'Rarity: UNIQUE\nForgotten Warden\nPrimal Markings\n')
+        self.assertTrue(items[1].text.startswith('Rarity: UNIQUE\nForgotten Warden\nPrimal Markings\n'))
+        self.assertIn('Spirit', items[1].text)
         self.assertTrue(all(slot.get('itemId') != '0' for slot in root.findall('Items/ItemSet/Slot')))
+
+    def test_unique_name_equips_complete_current_template(self):
+        path = self.file('Interludes', self.build(inventory_slots=[
+            {'inventory_id': 'Gloves1', 'unique_name': 'Lochtonial Caress'}]))
+        xml, code, report = convert([path])
+        root = validate_roundtrip(xml, code)
+        item = root.find('Items/Item')
+        self.assertIsNotNone(item)
+        self.assertEqual(root.find('Items/ItemSet/Slot').get('itemId'), item.get('id'))
+        for text in ('Rarity: UNIQUE\nLochtonial Caress\nTempered Mitts',
+                     'Selected Variant: 2', '{variant:2}+(15-25) to Armour',
+                     '{range:0.5}+(40-60) to maximum Life',
+                     'Share Charges with Allies in your Presence'):
+            self.assertIn(text, item.text)
+        self.assertIn('rolls médios', report['stages'][0]['warnings'][0])
+
+    def test_unique_raw_text_takes_precedence(self):
+        raw = 'Rarity: UNIQUE\nLochtonial Caress\nTempered Mitts\n+43 to maximum Life'
+        path = self.file('Interludes', self.build(inventory_slots=[
+            {'inventory_id': 'Gloves1', 'unique_name': 'Lochtonial Caress', 'raw_text': raw}]))
+        xml, code, _ = convert([path])
+        self.assertEqual(validate_roundtrip(xml, code).find('Items/Item').text, raw)
+
+    def test_unique_extraction_ignores_comments_and_ambiguous_names(self):
+        (self.base / 'items.lua').write_text(
+            '--[[\nDisabled\nBase\n]]\nreturn {[[\nKnown\nBase\n+(10-20) to maximum Life\n]],'
+            '[[\nAmbiguous\nBase A\n]],[[\nAmbiguous\nBase B\n]]}', encoding='utf-8')
+        self.assertEqual(extract_uniques(self.base),
+                         {'Known': 'Rarity: UNIQUE\nKnown\nBase\n+(10-20) to maximum Life'})
+
+    def test_older_catalog_without_uniques_keeps_notes(self):
+        self.catalog.pop('uniques', None)
+        catalog = self.base / 'catalog.json'
+        catalog.write_text(json.dumps(self.catalog), encoding='utf-8')
+        path = self.file('Interludes', self.build(inventory_slots=[
+            {'inventory_id': 'Gloves1', 'unique_name': 'Lochtonial Caress'}]))
+        xml, code, _ = convert([path], catalog_path=catalog)
+        self.assertEqual(validate_roundtrip(xml, code).find('Items/ItemSet/Slot').get('itemId'), '0')
 
     def test_map_formats_and_conflicts(self):
         self.assertEqual(passive_map([{'Id': 'a', 'PassiveSkillsHash': 12}]), {'a': 12})
