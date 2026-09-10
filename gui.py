@@ -4,7 +4,7 @@ import json
 import tempfile
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-from converter import DEFAULT_CATALOG, ConversionError, convert, write_outputs, stage_key
+from converter import DEFAULT_CATALOG, ConversionError, bundled_path, convert, write_outputs, stage_key
 from mobalytics import MobalyticsImportError, decode_pob2_code, import_guide
 
 TEXT = {
@@ -53,6 +53,10 @@ TEXT['en-US']['advanced'] = 'Advanced'
 class App:
     def __init__(self, root):
         self.root = root
+        try:
+            root.iconbitmap(default=str(bundled_path('assets/app-icon.ico')))
+        except tk.TclError:
+            pass
         root.geometry('850x670'); root.minsize(700, 560)
         self.files, self.code, self.direct_build, self.active_file = [], None, None, None
         self.mobalytics_import = False

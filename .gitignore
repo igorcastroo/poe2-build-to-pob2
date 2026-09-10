@@ -20,6 +20,7 @@ secrets/
 build/
 dist/
 *.spec
+!Build2PoB2.spec
 
 # Files created by the converter
 *.build
